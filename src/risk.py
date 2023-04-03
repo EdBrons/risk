@@ -23,7 +23,10 @@ class Risk:
     def number_of_territories(self):
         return self.territories.shape[0]
     def get_player_territories(self, player_id):
+        """Returns indexes of territories the player owns"""
         return np.where(self.territories[:, 1] == player_id)[0]
+    def get_player_army_count(self, player_id):
+        return self.territories[ self.territories[:, 1] == player_id ][:, 0].sum()
     def get_new_armies(self, player_id):
         my_territories = self.get_player_territories(player_id)
         new_armies = my_territories.shape[0] // 3
@@ -49,9 +52,10 @@ class Risk:
     def place_armies(self):
         n_players = len(self.players)
         players_to_initial_armies = { 2: 40, 3: 35, 4: 30, 5: 25, 6: 20 }
-        armies_to_place = players_to_initial_armies[n_players]
+        armies_to_place_base = players_to_initial_armies[n_players]
         if self.random_setup:
             for p in self.players:
+                armies_to_place = armies_to_place_base - len(self.get_player_territories(p.id))
                 my_territories = np.isin(element=self.territories[:, 1], test_elements=p.id)
                 army_placement = np.ones(my_territories.sum())
                 for _ in range(armies_to_place):
