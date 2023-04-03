@@ -19,8 +19,9 @@ class Game:
                 armies = 20 # change this in future
                 while armies > 0:
                     t = random.choice(self.map.get_tiles_owned_by(p))
-                    t.armies += random.randint(1, armies+1)
-                    armies -= t.armies
+                    x = random.randint(1, armies)
+                    t.armies += x
+                    armies -= x
         else:
             raise "Unimplemented mother fucker"
     def battle(self, player1, player2): 
