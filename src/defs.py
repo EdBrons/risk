@@ -1,0 +1,3 @@
+ARMIES = 0
+OWNER = 1
+NO_OWNER = -1
