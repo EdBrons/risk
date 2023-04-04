@@ -1,9 +1,9 @@
 import math
 import numpy as np
+import random
 from maps import default_map
 from player import RandomPlayer
-
-NO_OWNER = -1
+from defs import *
 
 # Taken from https://github.com/civrev/RLRisk/blob/master/rlrisk/environment/risk.py
 class Risk:
@@ -17,11 +17,10 @@ class Risk:
         self.finished = False
         self.graph, self.continents, self.continent_rewards, self.names = default_map()
         self.territories = self.make_state()
-    def make_state(self):
-        graph_size = len(self.graph.keys())
-        territory = np.array([0, -1])
-        territories = np.array([territory] * graph_size)
-        return territories
+
+    def get_state(self):
+        return self.territories
+
     def number_of_territories(self):
         return self.territories.shape[0]
     def get_player_territories(self, player_id):
@@ -29,6 +28,50 @@ class Risk:
         return np.where(self.territories[:, 1] == player_id)[0]
     def get_player_army_count(self, player_id):
         return self.territories[ self.territories[:, 1] == player_id ][:, 0].sum()
+
+    def play(self):
+        n_players = len(self.players)
+        self.claim_territories()
+        self.setup_armies()
+        while not self.finished:
+            player_id = self.players[self.turn % n_players].id
+            if (self.turn % 1000) == 0 or (self.turn % 1000) == 1:
+                print(f'TURN {self.turn}')
+                print(f'PLAYER {player_id}, controlled territories {len(self.get_player_territories(player_id))}')
+            self.turn += 1
+            self.recruitment_phase(player_id)
+            self.attack_phase(player_id)
+            if self.winner():
+                self.finished = True
+                break
+            self.fortify_phase(player_id)
+            if self.turn > self.max_turns:
+                self.finished = True
+                break
+        print(f'Final turn: {self.turn}')
+    def playing(self, player_id):
+        """Checks whether a player is still capable of playing"""
+        return player_id in self.territories[:, OWNER]
+    def winner(self):
+        return np.array_equal(self.territories[:, 1], np.repeat(self.territories[0, 0], self.number_of_territories()))
+
+    def recruitment_phase(self, player_id):
+        new_armies = self.get_new_armies(player_id)
+        self.place_armies(player_id, new_armies)
+    def place_armies(self, player_id, armies):
+        player = self.players[player_id]
+        changes = {}
+        for _ in range(armies):
+            valid = self.get_player_territories(player_id)
+            t = player.choose_recruit(self.get_state(), valid)
+            self.territories[t][0] += 1
+            if t not in changes:
+                changes[t] = 1
+            else:
+                changes[t] += 1
+        for k, v in changes.items():
+            # print(f'player {player_id} adds {v} armies to {self.names[k]}')
+            pass
     def get_new_armies(self, player_id):
         my_territories = self.get_player_territories(player_id)
         new_armies = my_territories.shape[0] // 3
@@ -42,6 +85,98 @@ class Risk:
             if owned:
                 new_armies += self.continent_rewards[c]
         return new_armies
+
+    def attack_phase(self, player_id):
+        player = self.players[player_id]
+        valid_attacks = self.get_valid_attacks(player_id)
+        choice = player.choose_attack(self.get_state(), valid_attacks) 
+        while choice != False:
+            # print(f'player {player_id} attacks from {self.names[choice[0]]} to {self.names[choice[1]]} with {choice[2]} armies.')
+            result = self.do_attack(choice[0], choice[1], choice[2])
+            # print(f'The attack is {result}')
+            if result == -1:
+                break
+            elif result == 0:
+                if not player.keep_attacking(self.get_state()):
+                    break
+            else:
+                self.reinforce_attack(player_id, choice[0], choice[1])
+                if self.territories[choice[1], ARMIES] > 1:
+                    choice = player.choose_attack(self.get_state(), self.get_valid_attacks(player_id, choice[1]))
+                else:
+                    break
+    def reinforce_attack(self, player_id, from_terr, to_terr):
+        player = self.players[player_id]
+        movable_armies = self.territories[from_terr, ARMIES] - 1
+        self.territories[to_terr, ARMIES] = 1
+        for _ in range(movable_armies):
+            choice = player.take_action(self.get_state(), 7, (from_terr, to_terr))
+            self.territories[choice, ARMIES] += 1
+    def is_valid_attack(self, player_id, attacker_territory, defender_territory, attacker_armies):
+        return 0 < attacker_armies < self.territories[attacker_armies][ARMIES] and (attacker_territory, defender_territory) in self.get_valid_attacks(player_id, attacker_territory)
+    def get_valid_attacks(self, player_id, frm=-1):
+        owned = self.get_player_territories(player_id)
+        if frm == -1:
+            valid_from = owned[np.where(self.territories[owned, ARMIES] > 1)[0]]
+        else:
+            valid_from = [frm]
+        attacks = []
+        for vf_terr in valid_from:
+            edges = set(self.graph[vf_terr])
+            valid_to = edges - set(owned)
+            for vt_terr in valid_to:
+                attacks.append((vf_terr, vt_terr))
+        return attacks
+    def do_attack(self, attacker_territory, defender_territory, attacker_armies):
+        """
+        Updates state
+        Returns -1 if attack fails (can't continue), 0 if attack is undecided (can continue), 1 if attack is victory
+        """
+        attacker_id = self.territories[attacker_territory, OWNER]
+        max_attacker_armies = self.territories[attacker_territory, ARMIES]
+        max_defender_armies = self.territories[defender_territory, ARMIES]
+        defender_armies = min(2, max_defender_armies)
+
+        a_rolls = []
+        for _ in range(attacker_armies):
+            a_rolls.append(random.randrange(1, 7))
+        d_rolls = []
+        for _ in range(defender_armies):
+            d_rolls.append(random.randrange(1, 7))
+
+        for _ in range(min(len(a_rolls), len(d_rolls))):
+            highest_a = max(a_rolls)
+            highest_d = max(d_rolls)
+            a_rolls.remove(highest_a)
+            d_rolls.remove(highest_d)
+            if highest_a > highest_d:
+                max_defender_armies -= 1
+            else:
+                attacker_armies -= 1
+                max_attacker_armies -= 1
+        if max_defender_armies == 0:
+            self.territories[attacker_territory, ARMIES] = max_attacker_armies - attacker_armies
+            self.territories[defender_territory, ARMIES] = attacker_armies
+            self.territories[defender_territory, OWNER] = attacker_id
+            result = 1
+        elif max_attacker_armies == 1:
+            self.territories[attacker_armies, ARMIES] = max_attacker_armies
+            result = -1
+        else:
+            self.territories[attacker_territory, ARMIES] = max_attacker_armies
+            self.territories[defender_territory, ARMIES] = max_defender_armies
+            result = 0
+        return result
+
+    def fortify_phase(self, player_id):
+        pass
+
+    # Setup Stuff
+    def make_state(self):
+        graph_size = len(self.graph.keys())
+        territory = np.array([0, -1])
+        territories = np.array([territory] * graph_size)
+        return territories
     def claim_territories(self):
         n_players = len(self.players)
         if self.random_setup:
@@ -65,43 +200,8 @@ class Risk:
                 self.territories[my_territories, 0] = army_placement
         else:
             raise NotImplementedError("We haven't implemented player choice yet...")
-    def winner(self):
-        return np.array_equal(self.territories[:, 1], np.repeat(self.territories[0, 0], self.number_of_territories()))
-    def get_state(self):
-        return self.territories
-    def play(self):
-        n_players = len(self.players)
-        self.claim_territories()
-        self.setup_armies()
-        while not self.finished:
-            player_id = self.players[self.turn % n_players].id
-            self.turn += 1
-
-            self.recruitment_phase(player_id)
-            self.attack_phase(player_id)
-            if self.winner():
-                self.finished = True
-                break
-            self.fortify_phase(player_id)
-
-            if self.turn > self.max_turns:
-                self.finished = True
-                break
-    def recruitment_phase(self, player_id):
-        new_armies = self.get_new_armies(player_id)
-        self.place_armies(player_id, new_armies)
-    def place_armies(self, player_id, armies):
-        player = self.players[player_id]
-        for _ in range(armies):
-            valid = self.get_player_territories(player_id)
-            t = player.take_action(self.get_state(), 0, valid)
-            self.territories[t][0] += 1
-    def attack_phase(self, player_id):
-        pass
-    def fortify_phase(self, player_id):
-        pass
 
 
-risk = Risk([RandomPlayer(0), RandomPlayer(1), RandomPlayer(2)], max_turns=100)
+# risk = Risk([RandomPlayer(0), RandomPlayer(1), RandomPlayer(2), RandomPlayer(3), RandomPlayer(4), RandomPlayer(5, 0.0)], max_turns=100000)
+risk = Risk([RandomPlayer(0), RandomPlayer(1, 0)], max_turns=5000)
 risk.play()
-print(risk.get_state())
