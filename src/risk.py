@@ -11,8 +11,10 @@ class Risk:
         if len(players) < 2 or len(players) > 6:
             raise ValueError("2 <= len(players) <= 6")
         self.players = players
+
         self.random_setup = random_setup
         self.max_turns = max_turns
+
         self.turn = 0
         self.finished = False
         self.graph, self.continents, self.continent_rewards, self.names = default_map()
@@ -35,9 +37,6 @@ class Risk:
         self.setup_armies()
         while not self.finished:
             player_id = self.players[self.turn % n_players].id
-            if (self.turn % 1000) == 0 or (self.turn % 1000) == 1:
-                print(f'TURN {self.turn}')
-                print(f'PLAYER {player_id}, controlled territories {len(self.get_player_territories(player_id))}')
             self.turn += 1
             self.recruitment_phase(player_id)
             self.attack_phase(player_id)
@@ -62,15 +61,15 @@ class Risk:
         player = self.players[player_id]
         changes = {}
         for _ in range(armies):
-            valid = self.get_player_territories(player_id)
-            t = player.choose_recruit(self.get_state(), valid)
-            self.territories[t][0] += 1
+            valid_territories = self.get_player_territories(player_id)
+            t = player.choose_recruitment_territory(self.get_state(), valid_territories)
+            self.territories[t][ARMIES] += 1
             if t not in changes:
                 changes[t] = 1
             else:
                 changes[t] += 1
         for k, v in changes.items():
-            # print(f'player {player_id} adds {v} armies to {self.names[k]}')
+            print(f'player {player_id} adds {v} armies to {self.names[k]}')
             pass
     def get_new_armies(self, player_id):
         my_territories = self.get_player_territories(player_id)
@@ -89,22 +88,25 @@ class Risk:
     def attack_phase(self, player_id):
         player = self.players[player_id]
         valid_attacks = self.get_valid_attacks(player_id)
-        choice = player.choose_attack(self.get_state(), valid_attacks) 
-        while choice != False:
+        attack = player.choose_attack(self.get_state(), valid_attacks) 
+        while attack != False:
+            from_terr = attack[0]
+            to_terr = attack[1]
+            armies = attack[2]
+
+            result = self.do_attack(from_terr, to_terr, armies)
+
             # print(f'player {player_id} attacks from {self.names[choice[0]]} to {self.names[choice[1]]} with {choice[2]} armies.')
-            result = self.do_attack(choice[0], choice[1], choice[2])
             # print(f'The attack is {result}')
+
             if result == -1:
                 break
             elif result == 0:
                 if not player.keep_attacking(self.get_state()):
                     break
             else:
-                self.reinforce_attack(player_id, choice[0], choice[1])
-                if self.territories[choice[1], ARMIES] > 1:
-                    choice = player.choose_attack(self.get_state(), self.get_valid_attacks(player_id, choice[1]))
-                else:
-                    break
+                self.reinforce_attack(player_id, from_terr, to_terr)
+                attack = player.choose_attack(self.get_state(), self.get_valid_attacks(player_id, to_terr))
     def reinforce_attack(self, player_id, from_terr, to_terr):
         player = self.players[player_id]
         movable_armies = self.territories[from_terr, ARMIES] - 1
@@ -112,14 +114,18 @@ class Risk:
         for _ in range(movable_armies):
             choice = player.take_action(self.get_state(), 7, (from_terr, to_terr))
             self.territories[choice, ARMIES] += 1
+            
     def is_valid_attack(self, player_id, attacker_territory, defender_territory, attacker_armies):
         return 0 < attacker_armies < self.territories[attacker_armies][ARMIES] and (attacker_territory, defender_territory) in self.get_valid_attacks(player_id, attacker_territory)
+
     def get_valid_attacks(self, player_id, frm=-1):
         owned = self.get_player_territories(player_id)
         if frm == -1:
             valid_from = owned[np.where(self.territories[owned, ARMIES] > 1)[0]]
         else:
-            valid_from = [frm]
+            valid_from = [frm] 
+        if self.territories[frm, ARMIES] <= 1:
+            return []
         attacks = []
         for vf_terr in valid_from:
             edges = set(self.graph[vf_terr])
@@ -200,8 +206,3 @@ class Risk:
                 self.territories[my_territories, 0] = army_placement
         else:
             raise NotImplementedError("We haven't implemented player choice yet...")
-
-
-# risk = Risk([RandomPlayer(0), RandomPlayer(1), RandomPlayer(2), RandomPlayer(3), RandomPlayer(4), RandomPlayer(5, 0.0)], max_turns=100000)
-risk = Risk([RandomPlayer(0), RandomPlayer(1, 0)], max_turns=5000)
-risk.play()

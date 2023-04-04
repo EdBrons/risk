@@ -12,20 +12,18 @@ class RandomPlayer(Player):
     def __init__(self, id, peace=0.25):
         super().__init__(id)
         self.peace = peace
-    def choose_recruit(self, state, valid):
-        return np.random.choice(valid)
+    def choose_recruitment_territory(self, state, valid_territories):
+        return np.random.choice(valid_territories)
     def choose_fortify(self, state, valid):
         if valid == []:
             return False
         move = valid[random.randint(0, len(valid) - 1)]
         amount = random.randint(1, state[move[0], ARMIES] - 1)
         return move + (amount,)
-    def choose_attack(self, state, valid):
-        if valid == []:
-            return
-        if random.random() < self.peace:
+    def choose_attack(self, state, valid_attacks):
+        if len(valid_attacks) == 0:
             return False
-        move = valid[random.randint(0, len(valid) - 1)]
+        move = valid_attacks[random.randint(0, len(valid_attacks) - 1)]
         amount = random.randint(1, state[move[0], ARMIES] - 1)
         return move + (amount,)
     def keep_attacking(self, state):

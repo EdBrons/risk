@@ -27,13 +27,13 @@ class TestRisk(unittest.TestCase):
     def test_random_place_armies(self):
         r = Risk(self.n_players(2), random_setup=True)
         r.claim_territories()
-        r.place_armies()
+        r.setup_armies()
         t = [ r.get_player_army_count(i) for i in range(2) ]
         self.assertListEqual(t, [40, 40])
 
         r = Risk(self.n_players(6), random_setup=True)
         r.claim_territories()
-        r.place_armies()
+        r.setup_armies()
         t = [ r.get_player_army_count(i) for i in range(6) ]
         self.assertListEqual(t, [20, 20, 20, 20, 20, 20])
 
