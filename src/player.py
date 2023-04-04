@@ -17,9 +17,7 @@ class RandomPlayer(Player):
     def choose_fortify(self, state, valid):
         if valid == []:
             return False
-        move = valid[random.randint(0, len(valid) - 1)]
-        amount = random.randint(1, state[move[0], ARMIES] - 1)
-        return move + (amount,)
+            
     def choose_attack(self, state, valid_attacks):
         if len(valid_attacks) == 0:
             return False
