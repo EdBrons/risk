@@ -69,7 +69,7 @@ class Risk:
             else:
                 changes[t] += 1
         for k, v in changes.items():
-            print(f'player {player_id} adds {v} armies to {self.names[k]}')
+            #print(f'player {player_id} adds {v} armies to {self.names[k]}')
             pass
     def get_new_armies(self, player_id):
         my_territories = self.get_player_territories(player_id)
@@ -175,8 +175,25 @@ class Risk:
         return result
 
     def fortify_phase(self, player_id):
-        pass
-
+        player = self.players[player_id]
+        owned = self.get_player_territories(player_id)
+        possible_moves = {}
+        for t in owned:
+            possible_moves[t] = self.territories[t, ARMIES] - 1
+        for t in owned:
+            valid_forts = self.get_valid_fortifications(t)
+            for _ in range(possible_moves[t]):
+                f = player.choose_fortify(self.get_state(), valid_forts)
+                if f:
+                    frm = f[0]
+                    to = f[1]
+                    self.territories[frm, ARMIES] -= 1
+                    possible_moves[frm] -= 1
+                    self.territories[to, ARMIES] += 1
+    def get_valid_fortifications(self, territory):
+        player_id = self.territories[territory][OWNER]
+        edges = self.graph[territory]
+        return [(territory, t) for t in edges if self.territories[t, OWNER] == player_id ]
     # Setup Stuff
     def make_state(self):
         graph_size = len(self.graph.keys())
