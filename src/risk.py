@@ -30,12 +30,19 @@ class Risk:
         return np.where(self.territories[:, 1] == player_id)[0]
     def get_player_army_count(self, player_id):
         return self.territories[ self.territories[:, 1] == player_id ][:, 0].sum()
+    
+    def print_update(self):
+        x = [ len(self.get_player_territories(p.id)) for p in self.players ]
+        print(x)
 
     def play(self):
         n_players = len(self.players)
         self.claim_territories()
         self.setup_armies()
         while not self.finished:
+            # Every 100 turns print an update
+            if (self.turn % 1000) == 0:
+                self.print_update()
             player_id = self.players[self.turn % n_players].id
             self.turn += 1
             self.recruitment_phase(player_id)

@@ -28,3 +28,4 @@ class RandomPlayer(Player):
         return random.random() < self.peace
     def choose_reinforce(self, state, valid):
         return np.random.choice(valid)
+
