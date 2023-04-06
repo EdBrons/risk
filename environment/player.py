@@ -1,6 +1,5 @@
 import numpy as np
 import random
-from defs import *
 
 class Player:
     def __init__(self, id):

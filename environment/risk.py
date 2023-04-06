@@ -3,11 +3,12 @@ import numpy as np
 from maps import default_map
 from defs import *
 
-class Attack:
-    def __init__(self, player_id, terr_from, terr_to):
-        self.player_id = player_id
-        self.terr_from = terr_from
-        self.terr_to = terr_to
+ATTACK_WON = 1
+ATTACK_UNDECIDED = 0
+ATTACK_FAILED = -1
+
+ARMIES = 0
+OWNER = 1
 
 # Taken from https://github.com/civrev/RLRisk/blob/master/rlrisk/environment/risk.py
 class Risk:
