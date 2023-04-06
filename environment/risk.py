@@ -38,6 +38,10 @@ class Risk:
         return self.territories.shape[0]
     def get_player_territories(self, player_id):
         return np.where(self.territories[:, 1] == player_id)[0]
+    def is_border(self, terr):
+        return not np.all(self.territories[self.graph[terr]][OWNER] == self.territories[terr, OWNER])
+    def get_border_territories(self, player_id):
+        return self.get_player_territories
     def get_player_army_count(self, player_id):
         """Gets total number of armies owned by a player"""
         return self.territories[ self.territories[:, 1] == player_id ][:, 0].sum()
@@ -198,6 +202,7 @@ class Risk:
                 self.territories[to_terr, ARMIES] += 1
                 self.territories[from_terr, ARMIES] -= 1
 
+    # TODO: optimize fortification code, it is the main bottleneck
     def get_valid_fortifications(self, territory):
         if self.territories[territory, ARMIES] < 2:
             return []
