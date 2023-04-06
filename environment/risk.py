@@ -1,8 +1,6 @@
 import math
 import numpy as np
-import random
 from maps import default_map
-from player import RandomPlayer
 from defs import *
 
 class Attack:
@@ -48,29 +46,32 @@ class Risk:
     
     def print_update(self):
         x = [ len(self.get_player_territories(p.id)) for p in self.players ]
-        print(x)
+        print(self.turn, x)
 
     def get_current_player(self):
         return self.players[self.turn % len(self.players)]
     def is_player_alive(self, player_id):
         return player_id in self.territories[:, OWNER]
     def winner(self):
-        return np.array_equal(self.territories[:, 1], np.repeat(self.territories[0, 0], self.get_territory_count()))
+        return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
     def play(self):
         # setup
         self.claim_territories()
         self.setup_armies()
         while not self.finished:
-            if self.turn % 1000 == 0:
-                self.print_update()
+            self.print_update()
             # main game loop:
             # recruit, attack, reinforce
             player_id = self.get_current_player().id
             self.turn += 1
+            if not self.is_player_alive(player_id):
+                continue
             self.recruitment_phase(player_id)
             self.attack_phase(player_id)
             if self.winner():
                 self.finished = True
+                self.print_update()
+                print(f'Player {player_id} won!')
                 break
             self.fortify_phase(player_id)
             if self.turn > self.max_turns:
@@ -99,6 +100,7 @@ class Risk:
         """
         player = self.players[player_id]
         legal_placements = self.get_player_territories(player_id)
+        assert len(legal_placements) > 0
         for _ in range(n_armies):
             t = player.choose_recruitment_territory(self.get_state(), legal_placements)
             if t:
