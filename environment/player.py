@@ -22,10 +22,12 @@ class RandomPlayer(Player):
         if len(valid_attacks) == 0:
             return False
         move = valid_attacks[random.randint(0, len(valid_attacks) - 1)]
-        amount = random.randint(1, state[move[0], ARMIES] - 1)
-        return move + (amount,)
+        return move
+        # amount = random.randint(1, min(state[move[0], ARMIES] - 1, 3))
+        # assert amount >= 1
+        # return move + (amount,)
     def keep_attacking(self, state):
         return random.random() < self.peace
     def choose_reinforce(self, state, valid):
-        return np.random.choice(valid)
+        return random.random() < .5
 
