@@ -1,1 +1,15 @@
-# This will eventually have something in it
+# Abstract
+
+# Motivation and Question
+
+# Planned Deliverables 
+
+# Resources Required 
+
+# Learning Outcomes 
+
+# Risk Statement
+
+# Ethics Statement 
+
+# Tentative Timeline 
