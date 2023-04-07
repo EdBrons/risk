@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from maps import default_map
-from defs import *
 
 ATTACK_WON = 1
 ATTACK_UNDECIDED = 0
