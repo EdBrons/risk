@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from enum import Enum, auto
 from maps import default_map
 
 ATTACK_WON = 1
@@ -9,23 +10,34 @@ ATTACK_FAILED = -1
 ARMIES = 0
 OWNER = 1
 
+class Phase(Enum):
+    RECRUITMENT = auto()
+    CHOOSE_FIRST_ATTACK = auto()
+    CHOOSE_SUBS_ATTACK = auto()
+    CONTINUE_ATTACK = auto()
+    FORTIFY = auto()
+
+
 # Taken from https://github.com/civrev/RLRisk/blob/master/rlrisk/environment/risk.py
 class Risk:
-    def __init__(self, players, random_setup = True, max_turns = math.inf):
+    def __init__(self, n_players, random_setup = True, max_turns = math.inf):
         """
-        players - the players to play this game
+        n_players - the players to play this game
         random_setup - should the territories be assigned randomly, and armies placed randomly
         max_turns - maximum number of turns for this game
         """
-        if len(players) < 2 or len(players) > 6:
+        if n_players < 2 or n_players > 6:
             raise ValueError("2 <= len(players) <= 6")
-        self.players = players
+        self.n_players = n_players
 
         self.random_setup = random_setup
         self.max_turns = max_turns
 
         self.turn = 0
+        self.current_player = 0
+        self.phase = Phase.RECRUITMENT
         self.finished = False
+
         self.graph, self.continents, self.continent_rewards, self.names = default_map()
         self.territories = self.make_state()
 
@@ -48,24 +60,14 @@ class Risk:
         x = [ len(self.get_player_territories(p.id)) for p in self.players ]
         print(self.turn, x)
 
-    def get_current_player(self):
-        return self.players[self.turn % len(self.players)]
-    def is_player_alive(self, player_id):
-        return player_id in self.territories[:, OWNER]
-    def winner(self):
-        return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
     def play(self):
         # setup
         self.claim_territories()
         self.setup_armies()
         while not self.finished:
+            player_id = self.get_next_player()
             self.print_update()
-            # main game loop:
-            # recruit, attack, reinforce
-            player_id = self.get_current_player().id
             self.turn += 1
-            if not self.is_player_alive(player_id):
-                continue
             self.recruitment_phase(player_id)
             self.attack_phase(player_id)
             if self.winner():
@@ -77,6 +79,45 @@ class Risk:
             if self.turn > self.max_turns:
                 self.finished = True
                 break
+    def is_player_alive(self, player_id):
+        return player_id in self.territories[:, OWNER]
+    def winner(self):
+        return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
+        self.get_next_player(self)
+    def get_next_player(self):
+        """
+        NOTE: possibility for an infinite loop here maybe
+        in future we should do this differently
+        """
+        self.next_player = (self.next_player + 1) % self.n_players
+        if self.is_player_alive(self.next_player):
+            return self.next_player
+    def setup(self):
+        self.claim_territories()
+        self.setup_armies()
+        self.phase = 0
+    def step(self, move = None):
+        """
+        Executes move, and moves one game step forward
+        If move is none, then it doesn't execute a move, just return info
+        Returns the next move to be made
+        formate (player_id, state, valid_moves)
+        """
+        if move is not None:
+            if self.phase == Phase.RECRUITMENT:
+                if self.is_valid_recruitment(self.current_player, move):
+                    self.recruitment_step(move)
+        if self.phase == Phase.RECRUITMENT:
+            return ( self.current_player, self.territories, Phase.RECRUITMENT, self.get_recruitment_moves(self.current_player) )
+
+    def get_recruitment_moves(self, player_id):
+        return ( self.get_new_armies(player_id), self.get_player_territories(player_id) )
+    def is_valid_recruitment(self, player_id, placement):
+        total_armies = sum(placement[:, ARMIES])
+        return total_armies <= self.get_new_armies(player_id) and len(set(placement[:, OWNER])) == 1
+    def recruitment_step(self, move):
+        for _, (territory, armies) in move:
+            self.territories[territory, ARMIES] += armies
 
     def get_new_armies(self, player_id):
         """
