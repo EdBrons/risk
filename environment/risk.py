@@ -125,6 +125,8 @@ class Risk:
             if self.is_valid_recruitment(self.current_player, move):
                 self.recruitment_step(move)
                 self.phase = Phase.FIRST_ATTACK
+            else:
+                print('recruitment phase fucked up')
         elif self.phase == Phase.FIRST_ATTACK:
             if self.is_valid_first_attack(self.current_player, move):
                 res = self.start_attack(move)
@@ -137,6 +139,8 @@ class Risk:
                     self.attacking = False
                     self.frm = None
                     self.to = None
+            else:
+                print('1st attack phase fucked up')
         elif self.phase == Phase.CONTINUE_ATTACK:
             if move:
                 res = self.continue_attack()
@@ -149,10 +153,15 @@ class Risk:
                     self.attacking = False
                     self.frm = None
                     self.to = None
+            else:
+                # stop attacking
+                self.phase = Phase.FORTIFY
         elif self.phase == Phase.REINFORCE_ATTACK:
             if 0 <= move <= self.territories[self.frm, ARMIES] - 1:
                 self.reinforce(move)
                 self.phase = Phase.SUBS_ATTACK
+            else:
+                print('reinforce attack phase fucked up')
         elif self.phase == Phase.SUBS_ATTACK:
             if self.is_valid_subs_attack(self.current_player, move, self.to):
                 res = self.start_attack(move)
@@ -165,9 +174,12 @@ class Risk:
                     self.attacking = False
                     self.frm = None
                     self.to = None
+            else:
+                print('subs attack phase fucked up')
         elif self.phase == Phase.FORTIFY:
             # do nothing because fuck the fortify phase
             self.current_player = self.get_next_player()
+            self.phase = Phase.RECRUITMENT
     def is_valid_subs_attack(self, player_id, attack, prev):
         return prev == attack[0] and self.is_valid_first_attack(player_id, attack)
     def is_valid_first_attack(self, player_id, attack):
@@ -251,12 +263,15 @@ class Risk:
         defender_armies = min(2, max_defender_armies)
 
         # generate random list of rolls in descending order
-        a_rolls = np.random.randint(1, 7, attacker_armies)
-        d_rolls = np.random.randint(1, 7, defender_armies)
-        a_rolls.sort()
-        d_rolls.sort()
+        a_rolls = np.sort(np.random.randint(1, 7, attacker_armies))[::-1]
+        d_rolls = np.sort(np.random.randint(1, 7, defender_armies))[::-1]
+        
+        print(a_rolls, d_rolls)
 
-        for i in reversed(range(min(a_rolls.shape[0], d_rolls.shape[0]))):
+        # a_rolls.sort()
+        # d_rolls.sort()
+
+        for i in range(min(a_rolls.shape[0], d_rolls.shape[0])):
             if a_rolls[i] > d_rolls[i]:
                 max_defender_armies -= 1
             else:
