@@ -7,12 +7,13 @@ ARMIES = 0
 OWNER = 1
 
 class AttackRes(Enum):
-    WON = auto()
+    WON = 0
     UNDECIDED = auto()
     FAILED = auto()
 
 class Phase(Enum):
-    RECRUITMENT = auto()
+    CHOOSE_TERRITORY = 0
+    RECRUITMENT = auto() 
     FIRST_ATTACK = auto()
     SUBS_ATTACK = auto()
     REINFORCE_ATTACK = auto()
@@ -24,7 +25,6 @@ class Phase(Enum):
 class Risk:
     def __init__(self, n_players, random_setup = True, max_turns = math.inf):
         """
-        n_players - the players to play this game
         random_setup - should the territories be assigned randomly, and armies placed randomly
         max_turns - maximum number of turns for this game
         """
@@ -37,9 +37,10 @@ class Risk:
 
         self.turn = 0
         self.current_player = 0
-        self.phase = Phase.RECRUITMENT
+        self.phase = Phase.CHOOSE_TERRITORY
         self.finished = False
         
+        self.armies_to_place = self.get_setup_armies() * n_players
         self.attacking = False
         self.frm = None
         self.to = None
@@ -62,12 +63,15 @@ class Risk:
         in future we should do this differently
         """
         self.current_player = (self.current_player + 1) % self.n_players
-        if self.is_player_alive(self.current_player):
-            return self.current_player
+        if not self.is_player_alive(self.current_player):
+            self.get_next_player()
+        return self.current_player
     def winner(self):
         return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
 
     def get_moves(self):
+        if self.phase == Phase.CHOOSE_TERRITORY:
+            return (self.territories[:, OWNER] == -1 or self.territories[:, OWNER] == self.current_player).nonzero()
         if self.phase == Phase.RECRUITMENT:
             return self.get_recruitment_moves(self.current_player)
         elif self.phase == Phase.FIRST_ATTACK:
@@ -91,7 +95,17 @@ class Risk:
             self.frm = None
             self.to = None
     def step(self, move):
-        if self.phase == Phase.RECRUITMENT:
+        if self.phase == Phase.CHOOSE_TERRITORY:
+            if self.territories[move, OWNER] == -1 or self.territories[move, OWNER] == self.current_player:
+                self.territories[move, OWNER] = self.current_player
+                self.territories[move, ARMIES] += 1
+                self.armies_to_place -= 1
+            if self.armies_to_place <= 0:
+                self.phase = Phase.RECRUITMENT
+                self.current_player = 0
+            else:
+                self.get_next_player()
+        elif self.phase == Phase.RECRUITMENT:
             if self.is_valid_recruitment(self.current_player, move):
                 self.recruitment_step(move)
                 self.phase = Phase.FIRST_ATTACK
@@ -228,33 +242,29 @@ class Risk:
         return result
 
     # Setup Stuff
-    def setup(self):
-        self.claim_territories()
-        self.setup_armies()
-        self.phase = Phase.RECRUITMENT
     def make_state(self):
         graph_size = len(self.graph.keys())
         territory = np.array([0, -1])
         territories = np.array([territory] * graph_size)
         return territories
+    def random_setup(self):
+        self.claim_territories()
+        self.setup_armies()
+        self.phase = Phase.RECRUITMENT
     def claim_territories(self):
-        if self.random_setup:
-            order = np.resize(np.arange(self.n_players), self.get_territory_count())
-            np.random.shuffle(order)
-            self.territories[:, 0] = np.ones(self.get_territory_count())
-            self.territories[:, 1] = order
-        else:
-            raise NotImplementedError("We haven't implemented player choice yet...")
-    def setup_armies(self):
+        order = np.resize(np.arange(self.n_players), self.get_territory_count())
+        np.random.shuffle(order)
+        self.territories[:, 0] = np.ones(self.get_territory_count())
+        self.territories[:, 1] = order
+    def get_setup_armies(self):
         players_to_initial_armies = { 2: 40, 3: 35, 4: 30, 5: 25, 6: 20 }
-        armies_to_place_base = players_to_initial_armies[self.n_players]
-        if self.random_setup:
-            for p in range(self.n_players):
-                armies_to_place = armies_to_place_base - len(self.get_player_territories(p))
-                my_territories = np.isin(element=self.territories[:, 1], test_elements=p)
-                army_placement = np.ones(my_territories.sum())
-                for _ in range(armies_to_place):
-                    army_placement[np.random.randint(army_placement.shape[0])] += 1
-                self.territories[my_territories, 0] = army_placement
-        else:
-            raise NotImplementedError("We haven't implemented player choice yet...")
+        return players_to_initial_armies[self.n_players]
+    def setup_armies(self):
+        armies_to_place_base = self.get_setup_armies()
+        for p in range(self.n_players):
+            armies_to_place = armies_to_place_base - len(self.get_player_territories(p))
+            my_territories = np.isin(element=self.territories[:, 1], test_elements=p)
+            army_placement = np.ones(my_territories.sum())
+            for _ in range(armies_to_place):
+                army_placement[np.random.randint(army_placement.shape[0])] += 1
+            self.territories[my_territories, 0] = army_placement

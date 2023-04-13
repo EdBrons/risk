@@ -13,7 +13,7 @@ n_players = int(input("n_players: "))
 risk = Risk(n_players, True)
 
 print('Generating the map')
-risk.setup()
+risk.random_setup()
 
 while not risk.finished:
     print(f'Turn for Player {risk.current_player}:')
