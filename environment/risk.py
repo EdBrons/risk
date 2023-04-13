@@ -47,49 +47,15 @@ class Risk:
         self.graph, self.continents, self.continent_rewards, self.names = default_map()
         self.territories = self.make_state()
 
-    def get_state(self):
-        return self.territories
-
     def get_territory_count(self):
         return self.territories.shape[0]
     def get_player_territories(self, player_id):
         return np.where(self.territories[:, 1] == player_id)[0]
-    def is_border(self, terr):
-        return not np.all(self.territories[self.graph[terr]][OWNER] == self.territories[terr, OWNER])
-    def get_border_territories(self, player_id):
-        return self.get_player_territories
     def get_player_army_count(self, player_id):
-        """Gets total number of armies owned by a player"""
         return self.territories[ self.territories[:, 1] == player_id ][:, 0].sum()
     
-    # def print_update(self):
-    #     x = [ len(self.get_player_territories(p.id)) for p in self.players ]
-    #     print(self.turn, x)
-
-    def play(self):
-        # setup
-        self.claim_territories()
-        self.setup_armies()
-        while not self.finished:
-            player_id = self.get_next_player()
-            self.print_update()
-            self.turn += 1
-            self.recruitment_phase(player_id)
-            self.attack_phase(player_id)
-            if self.winner():
-                self.finished = True
-                self.print_update()
-                print(f'Player {player_id} won!')
-                break
-            self.fortify_phase(player_id)
-            if self.turn > self.max_turns:
-                self.finished = True
-                break
     def is_player_alive(self, player_id):
         return player_id in self.territories[:, OWNER]
-    def winner(self):
-        return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
-        self.get_next_player(self)
     def get_next_player(self):
         """
         NOTE: possibility for an infinite loop here maybe
@@ -98,10 +64,9 @@ class Risk:
         self.current_player = (self.current_player + 1) % self.n_players
         if self.is_player_alive(self.current_player):
             return self.current_player
-    def setup(self):
-        self.claim_territories()
-        self.setup_armies()
-        self.phase = Phase.RECRUITMENT
+    def winner(self):
+        return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
+
     def get_moves(self):
         if self.phase == Phase.RECRUITMENT:
             return self.get_recruitment_moves(self.current_player)
@@ -115,46 +80,28 @@ class Risk:
             return self.get_legal_attacks(self.current_player, self.to)
         elif self.phase == Phase.FORTIFY:
             return [  ]
+    def attack_res_transition(self, res):
+        if res == AttackRes.WON:
+            self.phase = Phase.REINFORCE_ATTACK
+        elif res == AttackRes.UNDECIDED:
+            self.phase = Phase.CONTINUE_ATTACK
+        elif res == AttackRes.FAILED:
+            self.phase = Phase.FORTIFY
+            self.attacking = False
+            self.frm = None
+            self.to = None
     def step(self, move):
-        """
-        Executes move, and moves one game step forward
-        Returns the next move to be made
-        formate (player_id, state, valid_moves)
-        """
         if self.phase == Phase.RECRUITMENT:
             if self.is_valid_recruitment(self.current_player, move):
                 self.recruitment_step(move)
                 self.phase = Phase.FIRST_ATTACK
-            else:
-                print('recruitment phase fucked up')
         elif self.phase == Phase.FIRST_ATTACK:
-            if self.is_valid_first_attack(self.current_player, move):
-                res = self.start_attack(move)
-                if res == AttackRes.WON:
-                    self.phase = Phase.REINFORCE_ATTACK
-                elif res == AttackRes.UNDECIDED:
-                    self.phase = Phase.CONTINUE_ATTACK
-                elif res == AttackRes.FAILED:
-                    self.phase = Phase.FORTIFY
-                    self.attacking = False
-                    self.frm = None
-                    self.to = None
-            else:
-                print('1st attack phase fucked up')
+            if self.is_valid_attack(self.current_player, move):
+                self.attack_res_transition(self.start_attack(move))
         elif self.phase == Phase.CONTINUE_ATTACK:
             if move:
-                res = self.continue_attack()
-                if res == AttackRes.WON:
-                    self.phase = Phase.REINFORCE_ATTACK
-                elif res == AttackRes.UNDECIDED:
-                    self.phase = Phase.CONTINUE_ATTACK
-                elif res == AttackRes.FAILED:
-                    self.phase = Phase.FORTIFY
-                    self.attacking = False
-                    self.frm = None
-                    self.to = None
+                self.attack_res_transition(self.continue_attack())
             else:
-                # stop attacking
                 self.phase = Phase.FORTIFY
         elif self.phase == Phase.REINFORCE_ATTACK:
             if 0 <= move <= self.territories[self.frm, ARMIES] - 1:
@@ -164,25 +111,14 @@ class Risk:
                 print('reinforce attack phase fucked up')
         elif self.phase == Phase.SUBS_ATTACK:
             if self.is_valid_subs_attack(self.current_player, move, self.to):
-                res = self.start_attack(move)
-                if res == AttackRes.WON:
-                    self.phase = Phase.REINFORCE_ATTACK
-                elif res == AttackRes.UNDECIDED:
-                    self.phase = Phase.CONTINUE_ATTACK
-                elif res == AttackRes.FAILED:
-                    self.phase = Phase.FORTIFY
-                    self.attacking = False
-                    self.frm = None
-                    self.to = None
-            else:
-                print('subs attack phase fucked up')
+                self.attack_res_transition(self.start_attack(move))
         elif self.phase == Phase.FORTIFY:
             # do nothing because fuck the fortify phase
             self.current_player = self.get_next_player()
             self.phase = Phase.RECRUITMENT
     def is_valid_subs_attack(self, player_id, attack, prev):
-        return prev == attack[0] and self.is_valid_first_attack(player_id, attack)
-    def is_valid_first_attack(self, player_id, attack):
+        return prev == attack[0] and self.is_valid_attack(player_id, attack)
+    def is_valid_attack(self, player_id, attack):
         frm, to = attack
         return (self.territories[frm, ARMIES] > 1
                 and self.territories[frm, OWNER] == player_id
@@ -249,6 +185,7 @@ class Risk:
             for vt_terr in valid_to:
                 legal_attacks.append((vf_terr, vt_terr))
         return legal_attacks
+
     def do_attack(self, frm, to):
         # sanity checks
         assert self.territories[frm, OWNER] != self.territories[to, OWNER]
@@ -267,9 +204,6 @@ class Risk:
         d_rolls = np.sort(np.random.randint(1, 7, defender_armies))[::-1]
         
         print(a_rolls, d_rolls)
-
-        # a_rolls.sort()
-        # d_rolls.sort()
 
         for i in range(min(a_rolls.shape[0], d_rolls.shape[0])):
             if a_rolls[i] > d_rolls[i]:
@@ -294,6 +228,10 @@ class Risk:
         return result
 
     # Setup Stuff
+    def setup(self):
+        self.claim_territories()
+        self.setup_armies()
+        self.phase = Phase.RECRUITMENT
     def make_state(self):
         graph_size = len(self.graph.keys())
         territory = np.array([0, -1])

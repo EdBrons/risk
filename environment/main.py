@@ -50,7 +50,7 @@ while not risk.finished:
             m = int(input('Continue your attack? 1: yes, 0: no'))
         m = (m == 1)
         risk.step(m)
-    elif risk.phase == Phase.SUBS_ATTACK:
+    elif risk.phase == Phase.SUBS_ATTACK: #BUG: if there are no valid places to attack we get stuck here
         moves = risk.get_moves()
         at = -1
         while not at in range(len(moves)):
