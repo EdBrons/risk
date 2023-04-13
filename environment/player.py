@@ -48,3 +48,5 @@ class SmartPlayer(Player):
         return True
     def choose_reinforce(self, state, valid):
         return True
+    def test():
+        pass 
