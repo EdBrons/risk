@@ -23,16 +23,16 @@ class Phase(Enum):
 
 # Taken from https://github.com/civrev/RLRisk/blob/master/rlrisk/environment/risk.py
 class Risk:
-    def __init__(self, n_players, random_setup = True, max_turns = math.inf):
+    def __init__(self, n_players, randomSetup = True, max_turns = math.inf):
         """
-        random_setup - should the territories be assigned randomly, and armies placed randomly
+        randomSetup - should the territories be assigned randomly, and armies placed randomly
         max_turns - maximum number of turns for this game
         """
         if n_players < 2 or n_players > 6:
             raise ValueError("2 <= len(players) <= 6")
         self.n_players = n_players
 
-        self.random_setup = random_setup
+        self.randomSetup = randomSetup
         self.max_turns = max_turns
 
         self.turn = 0
