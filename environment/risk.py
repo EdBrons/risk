@@ -49,13 +49,17 @@ class Risk:
         self.territories = self.make_state()
 
     def get_territory_count(self):
+        """Returns number of territories"""
         return self.territories.shape[0]
     def get_player_territories(self, player_id):
+        """Returns number of territories owned by a given player"""
         return np.where(self.territories[:, 1] == player_id)[0]
     def get_player_army_count(self, player_id):
+        """Returns the army count for a given player"""
         return self.territories[ self.territories[:, 1] == player_id ][:, 0].sum()
     
     def is_player_alive(self, player_id):
+        """Returns True if the player has armies left, False otherwise"""
         return player_id in self.territories[:, OWNER]
     def get_next_player(self):
         """
@@ -67,6 +71,7 @@ class Risk:
             self.get_next_player()
         return self.current_player
     def winner(self):
+        """Returns True if there is a winner"""
         return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.get_territory_count()))
 
     def get_moves(self):
@@ -248,6 +253,10 @@ class Risk:
         territories = np.array([territory] * graph_size)
         return territories
     def random_setup(self):
+        """
+        Generates a random initial setup for the game, that is, the 
+        territories that each player owns with their respective armies
+        """
         self.claim_territories()
         self.setup_armies()
         self.phase = Phase.RECRUITMENT
