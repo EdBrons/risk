@@ -19,6 +19,7 @@ class Phase(Enum):
     REINFORCE_ATTACK = auto()
     CONTINUE_ATTACK = auto()
     FORTIFY = auto()
+    CONTINUE_FORTIFY = auto()
 
 
 # Taken from https://github.com/civrev/RLRisk/blob/master/rlrisk/environment/risk.py
@@ -51,6 +52,11 @@ class Risk:
     def get_territory_count(self):
         """Returns number of territories"""
         return self.territories.shape[0]
+    def get_vertices_count(self):
+        sum = 0
+        for _, values in self.graph.items():
+            sum += len(values)
+        return sum
     def get_player_territories(self, player_id):
         """Returns number of territories owned by a given player"""
         return np.where(self.territories[:, 1] == player_id)[0]
@@ -88,7 +94,9 @@ class Risk:
         elif self.phase == Phase.SUBS_ATTACK:
             return self.get_legal_attacks(self.current_player, self.to)
         elif self.phase == Phase.FORTIFY:
-            return [  ]
+            return [ False, ( u, v ) for u in self.get_player_territories(self.current_player) for v in self.graph[u] if self.territories[u, ARMIES] > 1 and self.territories[v, OWNER] == self.current_player ]
+        elif self.phase == Phase.CONTINUE_FORTIFY:
+            return [ True, False ]
     def attack_res_transition(self, res):
         if res == AttackRes.WON:
             self.phase = Phase.REINFORCE_ATTACK
@@ -123,7 +131,7 @@ class Risk:
             else:
                 self.phase = Phase.FORTIFY
         elif self.phase == Phase.REINFORCE_ATTACK:
-            if 0 <= move <= self.territories[self.frm, ARMIES] - 1:
+            if 0 < move <= self.territories[self.frm, ARMIES] - 1:
                 self.reinforce(move)
                 self.phase = Phase.SUBS_ATTACK
             else:

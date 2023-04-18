@@ -68,4 +68,8 @@ while not risk.finished:
         risk.step(m)
     elif risk.phase == Phase.FORTIFY:
         # fuck fortify phase
+        moves = risk.get_moves()
+        print(moves)
+        for i, m in enumerate(moves):
+            print(f'{i}. {risk.names[m[0]]}({risk.territories[m[0], ARMIES]}) -> {risk.names[m[1]]}({risk.territories[m[1], ARMIES]})')
         risk.step(None)
