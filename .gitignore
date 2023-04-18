@@ -1,2 +1,3 @@
 environment/test.py
 environment/__pycache__
+*.pyc
