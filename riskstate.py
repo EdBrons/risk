@@ -15,6 +15,12 @@ class Move(Enum):
     INVALID = 0
     VALID = auto()
 
+def new_game(n_players):
+    n_territories = len(default_map.keys())
+    
+    initial_territories = np.array([np.array([0, -1])] * n_territories)
+    return RiskState( 0, 0, [ _ for _ in range(n_players) ], initial_territories )
+
 class RiskState:
     def __init__(self, turn, current_player, active_players, territories ):
         self.turn = turn
@@ -22,6 +28,10 @@ class RiskState:
         self.active_players = active_players
         self.graph, self.continents, self.continent_rewards, self.names = default_map()
         self.territories = territories
+    def step(self, move):
+        pass
+    def finished(self):
+        return False
     def n_territories(self):
         return self.territories.shape[0]
     def get_next_player(self):
@@ -103,7 +113,7 @@ class SetupPhase(RiskState):
         self.n_armies = n_armies
     def action_space(self):
         # return (self.territories[:, OWNER] == NO_OWNER or self.territories[:, OWNER] == self.current_player).nonzero()
-        return range(self.n_territories())
+        return list(range(self.n_territories()))
     def is_valid(self, move):
         return move in self.action_space() and self.territories[move, OWNER] == NO_OWNER or self.territories[move, OWNER] == self.current_player
     def step(self, move):
@@ -125,7 +135,7 @@ class RecruitmentPhase(RiskState):
         self.n_recruits = n_recruits
     def action_space(self):
         # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return range(self.n_territories())
+        return list(range(self.n_territories()))
     def is_valid(self, move):
         return self.territories[move, OWNER] == self.current_player
     def step(self, move):
@@ -156,7 +166,7 @@ class FirstAttackPhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories):
         super().__init__(turn, current_player, active_players, territories)
     def action_space(self):
-        return (range(self.n_territories()), range(self.n_territories()))
+        return (list(range(self.n_territories())), list(range(self.n_territories())))
     def is_valid(self, move): # move = (frm, to)
         frm, to = move
         return self.is_valid_attack(self.current_player, frm, to)
@@ -211,7 +221,7 @@ class SubsequentAttackPhase(RiskState):
         super().__init__(turn, current_player, active_players, territories)
         self.frm = frm
     def action_space(self):
-        return range(self.n_territories())
+        return list(range(self.n_territories()))
     def is_valid(self, move): # move = (frm, to)
         return self.is_valid_attack(self.current_player, self.frm, move)
     def step(self, move):
@@ -225,7 +235,7 @@ class FortifyPhase1(RiskState):
         super().__init__(turn, current_player, active_players, territories)
     def action_space(self):
         # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return range(self.n_territories())
+        return list(range(self.n_territories()))
     def is_valid(self, move):
         return self.territories[move, OWNER] == self.current_player
     def step(self, move):
@@ -240,7 +250,7 @@ class FortifyPhase2(RiskState):
         self.frm = frm
     def action_space(self):
         # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return range(self.n_territories())
+        return list(range(self.n_territories()))
     def is_valid(self, move):
         return self.territories[move, OWNER] == self.current_player and move in self.graph[self.frm]
     def step(self, move):
