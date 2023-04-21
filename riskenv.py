@@ -40,6 +40,7 @@ class RiskEnv(gym.Env):
         return 0
 
     def step(self, action):
+        info = {} 
         res, state = self.risk.step(action)
         old_state = self.risk
         self.risk = state
