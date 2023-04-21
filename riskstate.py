@@ -1,6 +1,6 @@
 import numpy as np
 from enum import Enum, auto
-from maps import default_map
+from maps import default_map, default_graph
 
 ARMIES = 0
 OWNER = 1
@@ -16,7 +16,7 @@ class Move(Enum):
     VALID = auto()
 
 def new_game(n_players):
-    n_territories = len(default_map.keys())
+    n_territories = len(default_graph.keys())
     
     initial_territories = np.array([np.array([0, -1])] * n_territories)
     return RiskState( 0, 0, [ _ for _ in range(n_players) ], initial_territories )
