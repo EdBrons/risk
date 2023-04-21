@@ -1,4 +1,5 @@
 import gymnasium as gym
+from gymnasium.spaces import Dict, Discrete, MultiDiscrete
 from riskstate import *
 from maps import default_map
 
@@ -15,21 +16,21 @@ class RiskEnv(gym.Env):
         n_territories = self.risk.n_territories()
         n_phases = 9
 
-        self.action_space = gym.spaces.Dict( { 
-            "Setup": gym.spaces.Discrete(n_territories), 
-            "Recruitment": gym.spaces.Discrete(n_territories),
-            "FirstAttack": gym.spaces.MultiDiscrete([n_territories, n_territories]),
-            "ContinueAttack": gym.spaces.Discrete(2),
-            "Reinforce": gym.spaces.Discrete(2),
-            "SubsequentAttack": gym.spaces.Discrete(n_territories),
-            "Fortify1": gym.spaces.Discrete(n_territories),
-            "Fortify2": gym.spaces.Discrete(n_territories),
-            "Fortify3": gym.spaces.Discrete(2)
+        self.action_space = Dict( { 
+            "Setup": Discrete(n_territories), 
+            "Recruitment": Discrete(n_territories),
+            "FirstAttack": MultiDiscrete([n_territories, n_territories]),
+            "ContinueAttack": Discrete(2),
+            "Reinforce": Discrete(2),
+            "SubsequentAttack": Discrete(n_territories),
+            "Fortify1": Discrete(n_territories),
+            "Fortify2": Discrete(n_territories),
+            "Fortify3": Discrete(2)
         } )
 
-        self.observation_space = gym.spaces.Dict( {
-            "Phase": gym.spaces.Discrete(n_phases),
-            "Territories": gym.spaces.MultiDiscrete([n_territories, 2])
+        self.observation_space = Dict( {
+            "Phase": Discrete(n_phases),
+            "Territories": MultiDiscrete([n_territories, 2])
         } )
 
     def get_observation(self):
