@@ -22,6 +22,7 @@ def new_game(n_players):
     return RiskState( 0, 0, [ _ for _ in range(n_players) ], initial_territories )
 
 class RiskState:
+
     def __init__(self, turn, current_player, active_players, territories ):
         self.turn = turn
         self.current_player = current_player
@@ -108,14 +109,14 @@ class RiskState:
         return (result, territories)
 
 class SetupPhase(RiskState):
-    def __init__(self, turn, current_player, active_players, n_armies):
-        super().__init__(turn, current_player, active_players)
+    def __init__(self, turn, current_player, active_players, n_armies, territories):
+        super().__init__(turn, current_player, active_players, territories)
         self.n_armies = n_armies
     def action_space(self):
         # return (self.territories[:, OWNER] == NO_OWNER or self.territories[:, OWNER] == self.current_player).nonzero()
         return list(range(self.n_territories()))
     def is_valid(self, move):
-        return move in self.action_space() and self.territories[move, OWNER] == NO_OWNER or self.territories[move, OWNER] == self.current_player
+        return move in self.action_space() and (self.territories[move, OWNER] == NO_OWNER or self.territories[move, OWNER] == self.current_player)
     def step(self, move):
         if not self.is_valid(move):
             return ( Move.INVALID, self )
@@ -141,13 +142,12 @@ class RecruitmentPhase(RiskState):
     def step(self, move):
         if not self.is_valid(move):
             return ( Move.INVALID, self )
-        new_territories = self.territories.copy()
-        new_territories[move, ARMIES] += 1
+        self.territories[move, ARMIES] += 1
         new_n_recruits = self.n_recruits - 1
         if new_n_recruits == 0:
-            return ( Move.VALID, FirstAttackPhase( self.turn + 1, self.current_player, self.active_players, new_territories ) )
+            return ( Move.VALID, FirstAttackPhase( self.turn + 1, self.current_player, self.active_players, self.territories ) )
         else:
-            return ( Move.VALID, RecruitmentPhase( self.turn, self.current_player, self.active_players, new_territories, new_n_recruits ) )
+            return ( Move.VALID, RecruitmentPhase( self.turn, self.current_player, self.active_players, self.territories, new_n_recruits ) )
 
 # some code shared between the attack phases
 def handle_attack_res(phase, frm, to, res, new_territories):
