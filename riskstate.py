@@ -142,12 +142,13 @@ class RecruitmentPhase(RiskState):
     def step(self, move):
         if not self.is_valid(move):
             return ( Move.INVALID, self )
-        self.territories[move, ARMIES] += 1
+        new_territories = self.territories.copy()
+        new_territories[move, ARMIES] += 1
         new_n_recruits = self.n_recruits - 1
         if new_n_recruits == 0:
-            return ( Move.VALID, FirstAttackPhase( self.turn + 1, self.current_player, self.active_players, self.territories ) )
+            return ( Move.VALID, FirstAttackPhase( self.turn + 1, self.current_player, self.active_players, new_territories ) )
         else:
-            return ( Move.VALID, RecruitmentPhase( self.turn, self.current_player, self.active_players, self.territories, new_n_recruits ) )
+            return ( Move.VALID, RecruitmentPhase( self.turn, self.current_player, self.active_players, new_territories, new_n_recruits ) )
 
 # some code shared between the attack phases
 def handle_attack_res(phase, frm, to, res, new_territories):

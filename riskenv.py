@@ -48,7 +48,7 @@ class RiskEnv(gym.Env):
 
     def reset(self):
         ...
-        return observation  # reward, done, info can't be included
+        #return observation  # reward, done, info can't be included
 
     def render(self):
         ...
