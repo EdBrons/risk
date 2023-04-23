@@ -1,6 +1,6 @@
 import cProfile
 import numpy as np
-from risk import Risk, Phase, ARMIES, OWNER
+from old_risk import Risk, Phase, ARMIES, OWNER
 
 # risk = Risk([SmartPlayer(0), RandomPlayer(1), RandomPlayer(2), RandomPlayer(3), RandomPlayer(4), RandomPlayer(5)], max_turns=10000)
 # risk = Risk([SmartPlayer(0), RandomPlayer(1), RandomPlayer(2)], max_turns=10000)
