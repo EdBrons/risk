@@ -43,7 +43,7 @@ class RiskState:
         """
         First thing players can do at the beginning of a turn (place armies in a territory)
         """
-        if self.is_valid_recruit():
+        if self.is_valid_recruit(territory):
             n_armies = self.n_recruits(self.current_player)
             cur_armies = self.territories[territory, ARMIES]
             if cur_armies + n_armies <= MAX_ARMIES:
@@ -53,6 +53,7 @@ class RiskState:
                 self.territories[territory, ARMIES] += MAX_ARMIES - cur_armies
         else:
             #TODO: Something such that we can give a negative reward 
+            #print("INVALID RECRUIT")
             pass
 
     def attack(self, frm, to):
@@ -61,7 +62,7 @@ class RiskState:
             res = self.do_attack(frm, to)
             #Check if game is over 
             defender = self.territories[to, OWNER]
-            if self.get_player_territories(defender) == 0:
+            if len(self.get_player_territories(defender)) == 0:
                 self.active_players.remove(defender)
                 if len(self.active_players) == 1:
                     self.done = True
@@ -69,6 +70,7 @@ class RiskState:
 
         else:
             #TODO: SMTH to give a negative reward 
+            #print("INVALID ATTACK")
             pass
 
     def reinforce(self, frm, to, n_armies):
@@ -78,6 +80,7 @@ class RiskState:
             self.territories[to, ARMIES] -= n_armies
         else: 
             #TODO: smth to give a negative reward 
+            #print("INVALID REINFORCE")
             pass
     
 
@@ -183,6 +186,15 @@ class RiskState:
 
         return result
     
+    def get_borders(self, territory):
+        return self.graph[territory]
+    
+    def available_attacks(self, territory):
+        borders = self.get_borders(territory)
+        for country in borders:
+            if self.territories[country, OWNER] == self.current_player:
+                borders.remove(country)
+        return borders 
 
     # Methods to set up te game
     # --------------------------------------------------------------------

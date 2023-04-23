@@ -1,5 +1,5 @@
 # Risk class
-from risk import MAX_ARMIES
+from risk import MAX_ARMIES, OWNER
 from risk import RiskState
 from risk import AttackRes
 from risk import new_game
@@ -17,8 +17,10 @@ from maps import default_map
 class RiskEnvironment(Env):
     def __init__(self, n_players=2):
         self.risk = new_game(n_players)
+        self.initial_state = self.risk
         n_territories = self.risk.n_territories()
         max_borders = self.risk.max_borders()
+        self.valid_attacks = 0
 
         self.reward = 0
         self.turn = 0
@@ -52,6 +54,8 @@ class RiskEnvironment(Env):
 
         while not self.risk.done and result == AttackRes.UNDECIDED and n_attacks > 0:
             result = self.risk.attack(frm, to)
+            if result:
+                self.valid_attacks += 1
             n_attacks -= 1
             #TODO: UPDATE REWARD? 
         # If player won
@@ -66,9 +70,12 @@ class RiskEnvironment(Env):
             #player could keep attacking 
             frm = to                    #we can only attack from the territory we just conquered
             choice, to, n_attacks = action["SUBSEQUENT_ATTACK"]
-            if choice == 0:             # if wants to attack
+            possible_attacks = self.risk.available_attacks(frm)
+            if choice == 0 and possible_attacks:             # if wants to attack
                 result = self.risk.attack(frm, to)
                 while not self.risk.done and result == AttackRes.UNDECIDED and n_attacks > 0:
+                    if result:
+                        self.valid_attacks += 1
                     result = self.risk.attack(frm, to)
                     n_attacks -= 1
                     #TODO: UPDATE REWARD?
@@ -82,20 +89,30 @@ class RiskEnvironment(Env):
             frm, to, n_armies = action["FORTIFY"]
             self.risk.reinforce(frm, to, n_armies)
 
-        self.risk.get_next_player()
+        self.risk.current_player = self.risk.get_next_player()
         self.turn += 1
         
         return self.risk.territories, self.reward, self.risk.done
 
     def get_observation(self):
-        return self.risk.territories
+        obs = {} 
+        for player in self.risk.active_players:
+            obs[f"player_{player}"] = 0
+            for country in self.risk.graph:
+                if self.risk.territories[country, OWNER] == player:
+                    obs[f"player_{player}"] += 1
+        return obs
     
+    def reset(self):
+        self.risk = self.initial_state
+        self.reward = 0
+        self.turn = 0 
+        pass
         
     def render(self, render_mode = "human"):
         pass 
 
-    def reset(self):
-        pass 
+    
 
 
 
