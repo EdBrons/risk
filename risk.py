@@ -5,7 +5,7 @@ from maps import default_map, default_graph
 ARMIES = 0
 OWNER = 1 
 NO_OWNER = -1 
-MAX_ARMIES = 30
+MAX_ARMIES = 30                 #Just for the observation_space not in the logic of the game 
 
 class AttackRes(Enum):
     WON = 0
@@ -29,8 +29,8 @@ class RiskState:
         self.territories = territories 
         self.done = False 
 
-        #Initialize the board (Distribute territories randomly + Recruitment phase)
-        self.random_setup()
+        #Initialize the board (distribute territories randomly with one army in each)
+        self.setup()
 
 
 
@@ -44,17 +44,13 @@ class RiskState:
         First thing players can do at the beginning of a turn (place armies in a territory)
         """
         if self.is_valid_recruit(territory):
-            n_armies = self.n_recruits(self.current_player)
-            cur_armies = self.territories[territory, ARMIES]
-            if cur_armies + n_armies <= MAX_ARMIES:
-                self.territories[territory, ARMIES] += n_armies
-            else:
-                #TODO: Discuss with Ian to improve later. Put the rest randomly? 
-                self.territories[territory, ARMIES] += MAX_ARMIES - cur_armies
+            self.territories[territory, ARMIES] += 1
+            return True
+
         else:
-            #TODO: Something such that we can give a negative reward 
-            #print("INVALID RECRUIT")
-            pass
+            print("INVALID RECRUIT")
+            return False 
+            
 
     def attack(self, frm, to):
         #TODO: Remember that move will have three thngs (from, to, quantity)
@@ -69,9 +65,8 @@ class RiskState:
             return res
 
         else:
-            #TODO: SMTH to give a negative reward 
-            #print("INVALID ATTACK")
-            pass
+            print("INVALID ATTACK")
+            return False 
 
     def reinforce(self, frm, to, n_armies):
         #move is the same as in first_attack 
@@ -80,7 +75,7 @@ class RiskState:
             self.territories[to, ARMIES] -= n_armies
         else: 
             #TODO: smth to give a negative reward 
-            #print("INVALID REINFORCE")
+            print("INVALID REINFORCE")
             pass
     
 
@@ -139,7 +134,6 @@ class RiskState:
         """
         return(
             self.territories[frm, ARMIES] > n_armies
-            and self.territories[to, ARMIES] < MAX_ARMIES
             and self.territories[frm, OWNER] == self.current_player
             and self.territories[to, OWNER] == self.current_player
             and to in self.graph[frm]
@@ -199,9 +193,8 @@ class RiskState:
     # Methods to set up te game
     # --------------------------------------------------------------------
 
-    def random_setup(self):
+    def setup(self):
         self.claim_territories()
-        self.setup_armies()
 
     def get_player_territories(self, player_id):
         """Returns the territories owned by a player"""
