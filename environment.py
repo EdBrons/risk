@@ -106,8 +106,8 @@ class RiskEnvironment(Env):
     def reset(self):
         self.risk = self.initial_state
         self.reward = 0
-        self.turn = 0 
-        pass
+        self.turn = 0
+
         
     def render(self, render_mode = "human"):
         pass 
