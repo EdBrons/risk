@@ -19,7 +19,7 @@ def new_game(n_players):
     n_territories = len(default_graph.keys())
     
     initial_territories = np.array([np.array([0, -1])] * n_territories)
-    return RiskState( 0, 0, [ _ for _ in range(n_players) ], initial_territories )
+    return SetupPhase( 0, 0, [ _ for _ in range(n_players) ], initial_territories, 80 )
 
 class RiskState:
 
@@ -109,7 +109,7 @@ class RiskState:
         return (result, territories)
 
 class SetupPhase(RiskState):
-    def __init__(self, turn, current_player, active_players, n_armies, territories):
+    def __init__(self, turn, current_player, active_players, territories, n_armies):
         super().__init__(turn, current_player, active_players, territories)
         self.n_armies = n_armies
     def action_space(self):
@@ -282,3 +282,5 @@ class FortifyPhase3(RiskState):
             new_player = self.get_next_player()
             n_recruits = self.n_recruits(new_player)
             return ( Move.VALID, RecruitmentPhase(self.turn, new_player, self.active_players, new_territories, n_recruits) )
+        
+Phases = [ p.__name__ for p in RiskState.__subclasses__() ]
