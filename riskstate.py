@@ -29,6 +29,7 @@ class RiskState:
         self.active_players = active_players
         self.graph, self.continents, self.continent_rewards, self.names = default_map()
         self.territories = territories
+        self.won = False
     def step(self, move):
         pass
     def finished(self):
@@ -97,13 +98,16 @@ class RiskState:
             territories[frm, ARMIES] = max_attacker_armies - attacker_armies
             territories[to, ARMIES] = attacker_armies
             territories[to, OWNER] = attacker_id
+            self.won = True
             result = AttackRes.WON 
         elif max_attacker_armies <= 1:
             territories[frm, ARMIES] = max_attacker_armies
+            self.won = False
             result = AttackRes.FAILED
         else:
             territories[frm, ARMIES] = max_attacker_armies
             territories[to, ARMIES] = max_defender_armies
+            self.won = False
             result = AttackRes.UNDECIDED
 
         return (result, territories)
@@ -175,7 +179,7 @@ class RecruitmentPhase(RiskState):
         new_territories[move, ARMIES] += 1
         new_n_recruits = self.n_recruits - 1
         if new_n_recruits == 0:
-            return ( Move.VALID, FirstAttackPhase( self.turn + 1, self.current_player, self.active_players, new_territories ) )
+            return ( Move.VALID, FirstFromAttackPhase( self.turn + 1, self.current_player, self.active_players, new_territories ) )
         else:
             return ( Move.VALID, RecruitmentPhase( self.turn, self.current_player, self.active_players, new_territories, new_n_recruits ) )
 
