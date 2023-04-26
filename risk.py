@@ -5,7 +5,7 @@ from maps import default_map, default_graph
 ARMIES = 0
 OWNER = 1 
 NO_OWNER = -1 
-MAX_ARMIES = 30
+MAX_ARMIES = 20
 
 class AttackRes(Enum):
     WON = 0
@@ -46,11 +46,7 @@ class RiskState:
         if self.is_valid_recruit(territory):
             n_armies = self.n_recruits(self.current_player)
             cur_armies = self.territories[territory, ARMIES]
-            if cur_armies + n_armies <= MAX_ARMIES:
-                self.territories[territory, ARMIES] += n_armies
-            else:
-                #TODO: Discuss with Ian to improve later. Put the rest randomly? 
-                self.territories[territory, ARMIES] += MAX_ARMIES - cur_armies
+            self.territories[territory, ARMIES] += n_armies
         else:
             #TODO: Something such that we can give a negative reward 
             #print("INVALID RECRUIT")
@@ -139,7 +135,6 @@ class RiskState:
         """
         return(
             self.territories[frm, ARMIES] > n_armies
-            and self.territories[to, ARMIES] < MAX_ARMIES
             and self.territories[frm, OWNER] == self.current_player
             and self.territories[to, OWNER] == self.current_player
             and to in self.graph[frm]
