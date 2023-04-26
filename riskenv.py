@@ -9,6 +9,8 @@ class RiskEnv(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
+    # TODO: Complete the finished method in riskstate 
+
     def __init__(self, n_players=2):
         super().__init__()
 

@@ -17,10 +17,8 @@ class Move(Enum):
 
 def new_game(n_players):
     n_territories = len(default_graph.keys())
-    players_to_initial_armies = { 2: 41, 3: 35, 4: 30, 5: 25, 6: 20 }
-    n_armies = players_to_initial_armies[n_players]
     initial_territories = np.array([np.array([0, -1])] * n_territories)
-    return SetupPhase( 0, 0, [ _ for _ in range(n_players) ], initial_territories, 42 )
+    return SetupPhase( 0, 0, [ _ for _ in range(n_players) ], initial_territories, n_territories )
 
 class RiskState:
 
@@ -34,7 +32,7 @@ class RiskState:
     def step(self, move):
         pass
     def finished(self):
-        return False
+        return np.array_equal(self.territories[:, OWNER], np.repeat(self.territories[0, OWNER], self.territories.shape[0]))
     def n_territories(self):
         return self.territories.shape[0]
     def get_next_player(self):
