@@ -20,6 +20,8 @@ def new_game(n_players):
     initial_territories = np.array([np.array([0, -1])] * n_territories)
     return SetupPhase( 0, 0, [ _ for _ in range(n_players) ], initial_territories, n_territories )
 
+#TODO: HANDLE THE 42 action_space: DO NOTHING add some code to each step() method 
+
 class RiskState:
 
     def __init__(self, turn, current_player, active_players, territories ):
@@ -145,8 +147,7 @@ class SetupPhase(RiskState):
         super().__init__(turn, current_player, active_players, territories)
         self.n_armies = n_armies
     def action_space(self):
-        # return (self.territories[:, OWNER] == NO_OWNER or self.territories[:, OWNER] == self.current_player).nonzero()
-        return list(range(self.n_territories()))
+        return (self.territories[:, OWNER] == NO_OWNER).nonzero()[0]
     def is_valid(self, move):
         return move in self.action_space() and (self.territories[move, OWNER] == NO_OWNER)
     def step(self, move):
@@ -165,18 +166,19 @@ class SetupPhase(RiskState):
 class RecruitmentPhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories, n_recruits):
         super().__init__(turn, current_player, active_players, territories)
-        self.n_recruits = n_recruits
+        self.Nrecruits = n_recruits
     def action_space(self):
-        # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return list(range(self.n_territories()))
+        return (self.territories[:, OWNER] == self.current_player).nonzero()
+        
     def is_valid(self, move):
         return self.territories[move, OWNER] == self.current_player
+    
     def step(self, move):
         if not self.is_valid(move):
             return ( Move.INVALID, self )
         new_territories = self.territories.copy()
         new_territories[move, ARMIES] += 1
-        new_n_recruits = self.n_recruits - 1
+        new_n_recruits = self.Nrecruits - 1
         if new_n_recruits == 0:
             return ( Move.VALID, FirstFromAttackPhase( self.turn + 1, self.current_player, self.active_players, new_territories ) )
         else:
@@ -185,13 +187,15 @@ class RecruitmentPhase(RiskState):
 # some code shared between the attack phases
 def handle_attack_res(phase, frm, to, res, new_territories):
     if res == AttackRes.FAILED:
-        return ( Move.VALID, FortifyPhase1(phase.turn, phase.current_player, phase.active_players, phase.territories) )
+        return ( Move.VALID, FortifyPhase1(phase.turn, phase.current_player, phase.active_players, new_territories) )
     elif res == AttackRes.UNDECIDED:
         if new_territories[frm, ARMIES] > 1:
             return ( Move.VALID, ContinueAttackPhase(phase.turn, phase.current_player, phase.active_players, new_territories, frm, to) )
         else:
-            return ( Move.VALID, FortifyPhase1(phase.turn, phase.current_player, phase.active_players, phase.territories) )
+            return ( Move.VALID, FortifyPhase1(phase.turn, phase.current_player, phase.active_players, new_territories) )
     elif res == AttackRes.WON:
+        #TODO: Check if the defender has any territories left UPDATE self.active_player 
+        # active_players = active_players.remove(defender) 
         return ( Move.VALID, ReinforcePhase(phase.turn, phase.current_player, phase.active_players, new_territories, frm, to) )
     raise ValueError("res must be an AttackRes.")
 
@@ -199,9 +203,11 @@ class FirstFromAttackPhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories):
         super().__init__(turn, current_player, active_players, territories)
     def action_space(self):
-        return (list(range(self.n_territories())))
+        # return (self.territories[:, OWNER] == self.current_player and self.territories[:, ARMIES] > 1).nonzero()
+        return [ frm for _, frm in self.get_legal_attacks(self.current_player) ]
     def has_attacks(self, frm):
-        return len(self.get_legal_attacks(self.current_player, frm)) > 0
+        attacks = [t for t in self.graph[frm] if self.territories[t, OWNER] != self.current_player]
+        return len(attacks) > 0 
     def is_valid(self, frm): 
         return self.territories[frm, OWNER] == self.current_player and self.has_attacks(frm)
     def step(self, frm):
@@ -214,7 +220,7 @@ class FirstToAttackPhase(RiskState):
         super().__init__(turn, current_player, active_players, territories)
         self.frm = frm
     def action_space(self):
-        return list(range(self.n_territories))
+        return [ to for to, _ in self.get_legal_attacks(self.current_player, self.frm) ]
     def is_valid(self, to): 
         return self.is_valid_attack(self.current_player, self.frm, to)
     def step(self, to):
@@ -229,22 +235,24 @@ class ContinueAttackPhase(RiskState):
         self.frm = frm
         self.to = to
     def action_space(self):
-        return [ True, False ]
+        return [ 0, 1 ]
     def is_valid(self, move):
         return move in self.action_space()
     def step(self, move):
         if not self.is_valid(move):
             return ( Move.INVALID, self )
-        res, new_territories = self.do_attack(self.frm, self.to)
-        return handle_attack_res(self, self.frm, self.to, res, new_territories)
-
+        if move == 1: 
+            res, new_territories = self.do_attack(self.frm, self.to)
+            return handle_attack_res(self, self.frm, self.to, res, new_territories)
+        return (Move.VALID, FortifyPhase1(self.turn, self.current_player, self.active_players, self.territories)) 
+  
 class ReinforcePhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories, frm, to):
         super().__init__(turn, current_player, active_players, territories)
         self.frm = frm
         self.to = to
     def action_space(self):
-        return [ True, False ]
+        return [ 0, 1 ] if self.territories[self.frm, ARMIES] > 1 else [ 0 ]
     def is_valid(self, move):
         #      make sure move is bool      move is T    check if frm territory has enough units
         return move in self.action_space() and move and self.territories[self.frm, ARMIES] > 1
@@ -252,7 +260,7 @@ class ReinforcePhase(RiskState):
         if not self.is_valid(move):
             return ( Move.INVALID, self )
         new_territories = self.territories.copy()
-        if move:
+        if move == 1:
             new_territories[self.frm, ARMIES] -= 1
             new_territories[self.to, ARMIES] += 1
             return ( Move.VALID, ReinforcePhase(self.turn, self.current_player, self.active_players, new_territories, self.frm, self.to) )
@@ -267,8 +275,8 @@ class SubsequentAttackPhase(RiskState):
         super().__init__(turn, current_player, active_players, territories)
         self.frm = frm
     def action_space(self):
-        return list(range(self.n_territories()))
-    def is_valid(self, move): # move = (frm, to)
+        return [ to for to, _ in self.get_legal_attacks(self.current_player, self.frm) ]
+    def is_valid(self, move): 
         return self.is_valid_attack(self.current_player, self.frm, move)
     def step(self, move):
         if not self.is_valid(move):
@@ -280,8 +288,7 @@ class FortifyPhase1(RiskState):
     def __init__(self, turn, current_player, active_players, territories):
         super().__init__(turn, current_player, active_players, territories)
     def action_space(self):
-        # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return list(range(self.n_territories()))
+        return (self.territories[:, OWNER] == self.current_player).nonzero()
     def is_valid(self, move):
         return self.territories[move, OWNER] == self.current_player
     def step(self, move):
@@ -295,8 +302,7 @@ class FortifyPhase2(RiskState):
         super().__init__(turn, current_player, active_players, territories)
         self.frm = frm
     def action_space(self):
-        # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return list(range(self.n_territories()))
+        return (self.territories[:, OWNER] == self.current_player).nonzero()
     def is_valid(self, move):
         return self.territories[move, OWNER] == self.current_player and move in self.graph[self.frm]
     def step(self, move):
@@ -312,9 +318,9 @@ class FortifyPhase3(RiskState):
         self.to = to
     def action_space(self):
         # return (self.territories[:, OWNER] == self.current_player).nonzero()
-        return [ True, False ]
+        return [ 0, 1 ] if self.territoriesp[self.frm, ARMIES] > 1 else [0]
     def is_valid(self, move):
-        return move in self.action_space() and move and self.territories[self.frm, ARMIES] > 0
+        return move in self.action_space() 
     def step(self, move):
         if not self.is_valid(move):
             return ( Move.INVALID, self )

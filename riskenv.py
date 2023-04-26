@@ -6,15 +6,11 @@ import numpy as np
 
 class RiskEnv(gym.Env):
     """Custom Environment that follows gym interface."""
-
     metadata = {"render.modes": ["human"]}
-
-    # TODO: Complete the finished method in riskstate 
 
     def __init__(self, n_players=2):
         super().__init__()
 
-        
         self.risk = new_game(n_players)
         self.observation_unit_max = 10
         self.n_players = n_players
@@ -38,8 +34,20 @@ class RiskEnv(gym.Env):
             "Phase": current_phase_index,
             "Territory": np.array([np.array([territory, owner]) for territory, owner in self.risk.territories])
         }
+    
+    def get_short_observation(self):
+        obs = {} 
+        for player in self.risk.active_players:
+            obs[f"player_{player}"] = 0
+            for country in self.risk.graph:
+                if self.risk.territories[country, OWNER] == player:
+                    obs[f"player_{player}"] += 1
+        return obs, self.risk.turn
 
     def step(self, action):
+        #TODO: Implement the random player 
+        # if self.risk.current_player != 0:
+        #     action = np.random.randint(43)
         info = {} 
         res, state = self.risk.step(action)
         #If invalid move
@@ -53,7 +61,7 @@ class RiskEnv(gym.Env):
     def reset(self):
         self.risk = new_game(self.n_players)
         self.reward = 0 
-     
+    
 
     def render(self):
         ...
