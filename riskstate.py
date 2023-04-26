@@ -108,6 +108,35 @@ class RiskState:
 
         return (result, territories)
 
+    def get_player_territories(self, player_id):
+        """Returns number of territories owned by a given player"""
+        return np.where(self.territories[:, 1] == player_id)[0]
+
+    def get_legal_attacks(self, player_id, frm=None):
+        """
+        Returns an array of pairs of provinces where attacks can be made: (terr_frm, terr_to)
+        Will return an empty array if frm has less than 2 units
+        To be legal an attack must:
+        -originate from a territory owned by the player
+        -That territory must have at least 2 armies
+        -It must go to an adjacent territory owned by another player
+        """
+        owned = self.get_player_territories(player_id)
+        if frm is None:
+            valid_from = owned[np.where(self.territories[owned, ARMIES] > 1)[0]]
+        else:
+            assert self.territories[frm, OWNER] == player_id
+            if self.territories[frm, ARMIES] < 2:
+                return []
+            valid_from = [ frm ] 
+        legal_attacks = []
+        for vf_terr in valid_from:
+            edges = set(self.graph[vf_terr])
+            valid_to = edges - set(owned)
+            for vt_terr in valid_to:
+                legal_attacks.append((vf_terr, vt_terr))
+        return legal_attacks
+
 class SetupPhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories, n_armies):
         super().__init__(turn, current_player, active_players, territories)
@@ -163,20 +192,33 @@ def handle_attack_res(phase, frm, to, res, new_territories):
         return ( Move.VALID, ReinforcePhase(phase.turn, phase.current_player, phase.active_players, new_territories, frm, to) )
     raise ValueError("res must be an AttackRes.")
 
-class FirstAttackPhase(RiskState):
+class FirstFromAttackPhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories):
         super().__init__(turn, current_player, active_players, territories)
     def action_space(self):
-        return (list(range(self.n_territories())), list(range(self.n_territories())))
-    def is_valid(self, move): # move = (frm, to)
-        frm, to = move
-        return self.is_valid_attack(self.current_player, frm, to)
-    def step(self, move):
-        if not self.is_valid(move):
+        return (list(range(self.n_territories())))
+    def has_attacks(self, frm):
+        return len(self.get_legal_attacks(self.current_player, frm)) > 0
+    def is_valid(self, frm): 
+        return self.territories[frm, OWNER] == self.current_player and self.has_attacks(frm)
+    def step(self, frm):
+        if not self.is_valid(frm):
             return ( Move.INVALID, self )
-        frm, to = move
-        res, new_territories = self.do_attack(frm, to)
-        return handle_attack_res(self, frm, to, res, new_territories)
+        return ( Move.VALID, FirstToAttackPhase(self.turn, self.current_player, self.active_players, self.territories, frm))
+
+class FirstToAttackPhase(RiskState):
+    def __init__(self, turn, current_player, active_players, territories, frm):
+        super().__init__(turn, current_player, active_players, territories)
+        self.frm = frm
+    def action_space(self):
+        return list(range(self.n_territories))
+    def is_valid(self, to): 
+        return self.is_valid_attack(self.current_player, self.frm, to)
+    def step(self, to):
+        if not self.is_valid(to):
+            return ( Move.INVALID, self )
+        res, new_territories = self.do_attack(self.frm, to)
+        return handle_attack_res(self, self.frm, to, res, new_territories)
 
 class ContinueAttackPhase(RiskState):
     def __init__(self, turn, current_player, active_players, territories, frm, to):
