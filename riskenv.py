@@ -17,15 +17,16 @@ class RiskEnv(gym.Env):
 
         n_territories = self.risk.n_territories()
         self.n_phases = len(Phases)
-        self.MAX_ARMIES = 5
+        self.MAX_ARMIES = 30
 
         self.action_space = Discrete( n_territories )
 
-        self.observation_space = Dict( {
-            #"Graph": Graph(node_space= Discrete(n_territories), edge_space= Discrete(7)),
-            "Phase": Discrete(self.n_phases),
-            "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
-        } )
+        # self.observation_space = Dict( {
+        #     #"Graph": Graph(node_space= Discrete(n_territories), edge_space= Discrete(7)),
+        #     "Phase": Discrete(self.n_phases),
+        #     "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        # } )
+        self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
 
     def get_observation(self):
         current_phase_index = Phases.index(type(self.risk).__name__)
