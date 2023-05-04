@@ -29,12 +29,13 @@ class RiskEnv(gym.Env):
         self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
 
     def get_observation(self):
-        current_phase_index = Phases.index(type(self.risk).__name__)
-        return {
-            #"Graph": self.risk.graph,
-            "Phase": current_phase_index,
-            "Territory": np.array([np.array([territory, owner]) for territory, owner in self.risk.territories])
-        }
+        # current_phase_index = Phases.index(type(self.risk).__name__)
+        # return {
+        #     #"Graph": self.risk.graph,
+        #     "Phase": current_phase_index,
+        #     "Territory": np.array([np.array([territory, owner]) for territory, owner in self.risk.territories])
+        # }
+        return self.risk.territories
     
     def get_short_observation(self):
         obs = {} 
@@ -62,6 +63,7 @@ class RiskEnv(gym.Env):
     def reset(self):
         self.risk = new_game(self.n_players)
         self.reward = 0 
+        return self.get_observation()
     
 
     def render(self):
