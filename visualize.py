@@ -1,6 +1,6 @@
 import pygame
 import os
-
+from maps import default_names
 
 ImageLocations = {
     "Alaska": [8, 47], 
@@ -52,15 +52,28 @@ ImageLocations = {
     "Siam": [604, 259]
 }
 
+IMG_DIR = './risk-map'
+
 # pygame setup
 pygame.init()
 
-map = pygame.image.load(os.path.join('risk-map', 'riskMap.png'))
-imagerect = map.get_rect()
+Images = {}
+Rects = {}
+
+for t_name in default_names:
+    img = pygame.image.load(os.path.join(IMG_DIR, f'{t_name}.png'))
+    imagerect = img.get_rect()
+    Images[t_name] = img
+    Rects[t_name] = imagerect
 
 screen = pygame.display.set_mode((imagerect.width, imagerect.height))
 clock = pygame.time.Clock()
 running = True
+
+def draw_map():
+    for t_name in default_names:
+        screen.blit(Images[t_name], Rects[t_name])
+
 
 while running:
     # poll for events
@@ -73,7 +86,7 @@ while running:
     screen.fill("black")
 
     # RENDER YOUR GAME HERE
-    screen.blit(map, imagerect)
+    draw_map()
 
     # flip() the display to put your work on screen
     pygame.display.flip()
