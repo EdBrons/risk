@@ -31,7 +31,7 @@ ImageLocations = {
     "E_Australia": [700, 400],
     #Europe
     "Iceland": [300, 76], 
-    "Great_Britain": [268, 173], 
+    "Great_Britain": [268, 113], 
     "Scandanavia": [353, 51],
     "Ukraine": [400, 50], 
     "N_Europe": [345, 127], 
@@ -56,6 +56,9 @@ IMG_DIR = './risk-map'
 
 # pygame setup
 pygame.init()
+pygame.font.init() # you have to call this at the start, 
+                   # if you want to use this module.
+my_font = pygame.font.SysFont('Comic Sans MS', 12)
 
 Images = {}
 Rects = {}
@@ -74,27 +77,39 @@ screen = pygame.display.set_mode((maprect.width, maprect.height))
 clock = pygame.time.Clock()
 running = True
 
-def draw_map():
+def draw_map(to, risk_state = None, player_colors = None):
     for t_name in default_names:
-        screen.blit(Images[t_name], Rects[t_name])
+        if risk_state is not None:
+            pass
+        Images[t_name].fill((190, 0, 0, 100), special_flags=pygame.BLEND_MULT)
+        to.blit(Images[t_name], Rects[t_name])
+        text_surface = my_font.render(f'1', False, (0, 0, 0))
+        pygame.draw.circle(to, (255, 255, 255), Rects[t_name].center, 10)
+        to.blit(text_surface, Rects[t_name].scale_by(.05))
 
+def create_map(risk_state = None, player_colors = None):
+    img = map.copy()
+    draw_map(img, risk_state, player_colors)
+    return img
 
-while running:
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+pygame.image.save(create_map(), "out.png")
 
-    # fill the screen with a color to wipe away anything from last frame
-    screen.fill("black")
+# while running:
+#     # poll for events
+#     # pygame.QUIT event means the user clicked X to close your window
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             running = False
 
-    # RENDER YOUR GAME HERE
-    draw_map()
+#     # fill the screen with a color to wipe away anything from last frame
+#     screen.fill("black")
 
-    # flip() the display to put your work on screen
-    pygame.display.flip()
+#     # RENDER YOUR GAME HERE
+#     draw_map()
 
-    clock.tick(60)  # limits FPS to 60
+#     # flip() the display to put your work on screen
+#     pygame.display.flip()
+
+#     clock.tick(60)  # limits FPS to 60
 
 pygame.quit()
