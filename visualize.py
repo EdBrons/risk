@@ -60,13 +60,17 @@ pygame.init()
 Images = {}
 Rects = {}
 
+map = pygame.image.load(os.path.join(IMG_DIR, 'map.png'))
+maprect = map.get_rect()
+
 for t_name in default_names:
     img = pygame.image.load(os.path.join(IMG_DIR, f'{t_name}.png'))
     imagerect = img.get_rect()
+    imagerect.topleft = ImageLocations[t_name]
     Images[t_name] = img
     Rects[t_name] = imagerect
 
-screen = pygame.display.set_mode((imagerect.width, imagerect.height))
+screen = pygame.display.set_mode((maprect.width, maprect.height))
 clock = pygame.time.Clock()
 running = True
 
