@@ -36,11 +36,11 @@ class RiskEnv(gym.Env):
 
         self.action_space = Discrete( n_territories + 1 )
 
-        # self.observation_space = Dict( {
-        #     "Phase": Discrete(self.n_phases),
-        #     "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
-        # } )
-        self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        self.observation_space = Dict( {
+            "Phase": Discrete(self.n_phases),
+            "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        } )
+        # self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
 
         self.render_mode = "human"
         self.window = None
@@ -89,12 +89,12 @@ class RiskEnv(gym.Env):
 
     def get_observation(self):
         current_phase_index = Phases.index(type(self.risk).__name__)
-        # obs = {
-        #     "Phase": np.array([current_phase_index]),
-        #     "Territories": self.risk.territories
-        # }
-        # return obs 
-        return self.risk.territories 
+        obs = {
+            "Phase": np.array([current_phase_index]),
+            "Territories": self.risk.territories
+        }
+        return obs 
+        # return self.risk.territories 
         
     
     def get_short_observation(self):
@@ -120,10 +120,11 @@ class RiskEnv(gym.Env):
             else:
                 print()
                 self.invalid_moves = 0
-            reward = 1 if self.risk.won else -1 if res == Move.INVALID else -5
+            reward = 100 if self.risk.won else -1 if res == Move.INVALID else -5
+            self.risk.won = False
         self.risk = state
-        # obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
-        obs = self.risk.territories
+        obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
+        # obs = self.risk.territories
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
