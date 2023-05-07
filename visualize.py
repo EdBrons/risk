@@ -54,45 +54,7 @@ ImageLocations = {
 
 IMG_DIR = './risk-map'
 
-# pygame setup
-pygame.init()
-pygame.font.init() # you have to call this at the start, 
-                   # if you want to use this module.
-my_font = pygame.font.SysFont('Comic Sans MS', 12)
-
-Images = {}
-Rects = {}
-
-map = pygame.image.load(os.path.join(IMG_DIR, 'map.png'))
-maprect = map.get_rect()
-
-for t_name in default_names:
-    img = pygame.image.load(os.path.join(IMG_DIR, f'{t_name}.png'))
-    imagerect = img.get_rect()
-    imagerect.topleft = ImageLocations[t_name]
-    Images[t_name] = img
-    Rects[t_name] = imagerect
-
-screen = pygame.display.set_mode((maprect.width, maprect.height))
-clock = pygame.time.Clock()
-running = True
-
-def draw_map(to, risk_state = None, player_colors = None):
-    for t_name in default_names:
-        if risk_state is not None:
-            pass
-        Images[t_name].fill((190, 0, 0, 100), special_flags=pygame.BLEND_MULT)
-        to.blit(Images[t_name], Rects[t_name])
-        text_surface = my_font.render(f'1', False, (0, 0, 0))
-        pygame.draw.circle(to, (255, 255, 255), Rects[t_name].center, 10)
-        to.blit(text_surface, Rects[t_name].scale_by(.05))
-
-def create_map(risk_state = None, player_colors = None):
-    img = map.copy()
-    draw_map(img, risk_state, player_colors)
-    return img
-
-pygame.image.save(create_map(), "out.png")
+# pygame.image.save(create_map(), "out.png")
 
 # while running:
 #     # poll for events
@@ -112,4 +74,4 @@ pygame.image.save(create_map(), "out.png")
 
 #     clock.tick(60)  # limits FPS to 60
 
-pygame.quit()
+# pygame.quit()
