@@ -58,7 +58,7 @@ class RiskEnv(gym.Env):
             res, state = self.risk.step(action)
             reward = 1 if self.risk.won else -1 if res.VALID else -5
         self.risk = state
-        obs = dict(Phase=np.array[Phases.index(type(self.risk).__name__)], Territories = self.risk.territories)
+        obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
