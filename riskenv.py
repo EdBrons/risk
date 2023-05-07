@@ -18,6 +18,16 @@ class RiskEnv(gym.Env):
         self.risk = new_game(n_players)
         self.observation_unit_max = 10
         self.n_players = n_players
+
+        self.colors = {}
+        if n_players == 2:
+            self.colors[0] = ( 255, 0, 0, 100 )
+            self.colors[1] = ( 0, 255, 0, 100 )
+        else:
+            for i in range(n_players):
+                self.colors[i] = ( random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 100 )
+        self.colors[-1] = ( 128, 128, 128, 100 )
+
         self.random_players = random_players
 
         n_territories = self.risk.n_territories()
@@ -62,12 +72,13 @@ class RiskEnv(gym.Env):
         # self.window.fill("black")
         # self.window.blit(self.map, self.maprect)
         canvas.blit(self.map, self.maprect)
-        for t_name in default_names:
+        for idx, t_name in enumerate(default_names):
             if self.risk is not None:
                 pass
-            # self.images[t_name].fill((190, 0, 0, 100), special_flags=pygame.BLEND_MULT)
-            canvas.blit(self.images[t_name], self.rects[t_name])
-            text_surface = self.font.render(f'1', False, (0, 0, 0))
+            img = self.images[t_name].copy()
+            img.fill(self.colors[self.risk.territories[idx, OWNER]], special_flags=pygame.BLEND_MULT)
+            canvas.blit(img, self.rects[t_name])
+            text_surface = self.font.render(f'{self.risk.territories[idx, ARMIES]}', False, (0, 0, 0))
             pygame.draw.circle(canvas, (255, 255, 255), self.rects[t_name].center, 10)
             canvas.blit(text_surface, self.rects[t_name].center)
         self.window.blit(canvas, canvas.get_rect())
