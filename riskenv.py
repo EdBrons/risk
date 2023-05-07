@@ -34,7 +34,7 @@ class RiskEnv(gym.Env):
         self.n_phases = len(Phases)
         self.MAX_ARMIES = 30
 
-        self.action_space = Discrete( n_territories )
+        self.action_space = Discrete( n_territories + 1 )
 
         # self.observation_space = Dict( {
         #     "Phase": Discrete(self.n_phases),
@@ -45,6 +45,8 @@ class RiskEnv(gym.Env):
         self.render_mode = "human"
         self.window = None
         self.fps = 60
+
+        self.invalid_moves = 0
     
     def _init_render(self):
         pygame.init()
@@ -112,7 +114,13 @@ class RiskEnv(gym.Env):
             reward = 0 
         else:
             res, state = self.risk.step(action)
-            reward = 1 if self.risk.won else -1 if res.VALID else -5
+            if res == Move.INVALID:
+                self.invalid_moves += 1
+                print(f"\r>> AI Has made an invalid moves in {type(self.risk).__name__} X ({self.invalid_moves})", end='')
+            else:
+                print()
+                self.invalid_moves = 0
+            reward = 1 if self.risk.won else -1 if res == Move.INVALID else -5
         self.risk = state
         # obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
         obs = self.risk.territories

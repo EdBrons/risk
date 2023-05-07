@@ -65,7 +65,7 @@ from rl.memory import SequentialMemory
 
 from riskenv import RiskEnv
 
-env = RiskEnv(random_players=False)
+env = RiskEnv(random_players=True)
 nb_actions = env.action_space.n
 
 # Define the model 
@@ -94,4 +94,7 @@ dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 
 # Train the agent 
 print("TRAINING")
-dqn.fit(env, nb_steps=10000, visualize=True, verbose=2)
+dqn.fit(env, nb_steps=1000000, visualize=True, verbose=2)
+
+print("DONE TRAINING")
+# dqn.test(env, visualize=True, verbose = 2)
