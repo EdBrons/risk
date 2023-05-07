@@ -49,19 +49,17 @@ class RiskEnv(gym.Env):
         return obs, self.risk.turn
 
     def step(self, action):
-        #TODO: Implement the random player 
-        # if self.risk.current_player != 0:
-        #     action = np.random.randint(43)
         info = {} 
+        # Train against random players (agent is at index 0)
         if self.random_players and self.risk.current_player != 0:
             res, state = self.risk.step(random.choice(self.risk.action_space()))
+            reward = 0 
         else:
             res, state = self.risk.step(action)
-        #If invalid move
-        
-        reward = 1 if self.risk.won else -1 if res.VALID else -5
+            reward = 1 if self.risk.won else -1 if res.VALID else -5
         self.risk = state
-        return (self.get_observation(), reward, self.risk.finished() , info)
+        obs = dict(Phase=np.array[Phases.index(type(self.risk).__name__)], Territories = self.risk.territories)
+        return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
         self.risk = new_game(self.n_players)
