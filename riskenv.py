@@ -10,7 +10,7 @@ import os
 
 class RiskEnv(gym.Env):
     """Custom Environment that follows gym interface."""
-    metadata = {"render.modes": ["human"], "render_fps": 60}
+    # metadata = {"render.modes": ["human"], "render_fps": 60}
 
     def __init__(self, n_players=2, random_players = False):
         super().__init__()
@@ -26,14 +26,15 @@ class RiskEnv(gym.Env):
 
         self.action_space = Discrete( n_territories )
 
-        self.observation_space = Dict( {
-            "Phase": Discrete(self.n_phases),
-            "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
-        } )
-        #self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        # self.observation_space = Dict( {
+        #     "Phase": Discrete(self.n_phases),
+        #     "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        # } )
+        self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
 
         self.render_mode = "human"
         self.window = None
+        self.fps = 60
     
     def _init_render(self):
         pygame.init()
@@ -71,16 +72,16 @@ class RiskEnv(gym.Env):
             canvas.blit(text_surface, self.rects[t_name].center)
         self.window.blit(canvas, canvas.get_rect())
         pygame.display.update()
-        self.clock.tick(self.metadata["render_fps"])
+        self.clock.tick(self.fps)
 
     def get_observation(self):
         current_phase_index = Phases.index(type(self.risk).__name__)
-        obs = {
-            "Phase": np.array([current_phase_index]),
-            "Territories": np.squeeze(self.risk.territories)
-        }
-        return obs 
-        #return self.risk.territories 
+        # obs = {
+        #     "Phase": np.array([current_phase_index]),
+        #     "Territories": self.risk.territories
+        # }
+        # return obs 
+        return self.risk.territories 
         
     
     def get_short_observation(self):
@@ -102,7 +103,8 @@ class RiskEnv(gym.Env):
             res, state = self.risk.step(action)
             reward = 1 if self.risk.won else -1 if res.VALID else -5
         self.risk = state
-        obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = np.squeeze(self.risk.territories))
+        # obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
+        obs = self.risk.territories
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
@@ -110,7 +112,7 @@ class RiskEnv(gym.Env):
         return self.get_observation()
     
 
-    def render(self):
+    def render(self, mode):
         if self.render_mode == "human":
             self._render_frame()
 
