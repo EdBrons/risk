@@ -94,22 +94,22 @@ def create_map(risk_state = None, player_colors = None):
 
 pygame.image.save(create_map(), "out.png")
 
-while running:
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+# while running:
+#     # poll for events
+#     # pygame.QUIT event means the user clicked X to close your window
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             running = False
 
-    # fill the screen with a color to wipe away anything from last frame
-    screen.fill("black")
+#     # fill the screen with a color to wipe away anything from last frame
+#     screen.fill("black")
 
-    # RENDER YOUR GAME HERE
-    draw_map()
+#     # RENDER YOUR GAME HERE
+#     draw_map()
 
-    # flip() the display to put your work on screen
-    pygame.display.flip()
+#     # flip() the display to put your work on screen
+#     pygame.display.flip()
 
-    clock.tick(60)  # limits FPS to 60
+#     clock.tick(60)  # limits FPS to 60
 
 pygame.quit()
