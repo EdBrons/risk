@@ -1,5 +1,5 @@
 import gymnasium as gym
-from gymnasium.spaces import Dict, Discrete, MultiDiscrete, Graph 
+from gymnasium.spaces import Dict, Discrete, MultiDiscrete, Tuple
 from riskstate import *
 from maps import default_map, default_names
 from visualize import ImageLocations, IMG_DIR
@@ -40,7 +40,8 @@ class RiskEnv(gym.Env):
         #     "Phase": Discrete(self.n_phases),
         #     "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
         # } )
-        self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        #self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        self.observation_space = Tuple((Discrete(self.n_phases), MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))))
 
         self.render_mode = "human"
         self.window = None
@@ -94,7 +95,8 @@ class RiskEnv(gym.Env):
         #     "Territories": self.risk.territories
         # }
         # return obs 
-        return self.risk.territories 
+        #return self.risk.territories 
+        return (current_phase_index, self.risk.territories)
         
     
     def get_short_observation(self):
@@ -123,7 +125,9 @@ class RiskEnv(gym.Env):
             reward = 1 if self.risk.won else -1 if res == Move.INVALID else -5
         self.risk = state
         # obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
-        obs = self.risk.territories
+        #obs = self.risk.territories
+        current_phase_index = Phases.index(type(self.risk).__name__)
+        obs = (current_phase_index, self.risk.territories)
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
