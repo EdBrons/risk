@@ -52,6 +52,10 @@ ImageLocations = {
     "Siam": [604, 259]
 }
 
+TextBoxLocation = [335, 5]
+
+TextRect = pygame.rect.Rect(335, 5, 162, 49)
+
 IMG_DIR = './risk-map'
 
 # pygame.image.save(create_map(), "out.png")

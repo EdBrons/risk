@@ -2,7 +2,7 @@ import gymnasium as gym
 from gymnasium.spaces import Dict, Discrete, MultiDiscrete, Graph 
 from riskstate import *
 from maps import default_map, default_names
-from visualize import ImageLocations, IMG_DIR
+from visualize import ImageLocations, IMG_DIR, TextBoxLocation, TextRect
 import numpy as np 
 import random
 import pygame
@@ -33,6 +33,7 @@ class RiskEnv(gym.Env):
         n_territories = self.risk.n_territories()
         self.n_phases = len(Phases)
         self.MAX_ARMIES = 30
+        self.last_action = None
 
         self.action_space = Discrete( n_territories + 1 )
 
@@ -83,6 +84,36 @@ class RiskEnv(gym.Env):
             text_surface = self.font.render(f'{self.risk.territories[idx, ARMIES]}', False, (0, 0, 0))
             pygame.draw.circle(canvas, (255, 255, 255), self.rects[t_name].center, 10)
             canvas.blit(text_surface, self.rects[t_name].center)
+
+        # DRAW LAST MOVE
+        if self.last_action != None and self.last_action != self.risk.DO_NOTHING:
+            text_surface = self.font.render(f'{self.risk.territories[self.last_action, ARMIES]}', False, (0, 0, 0))
+            pygame.draw.circle(canvas, (0, 0, 255), self.rects[default_names[self.last_action]].center, 15)
+            canvas.blit(text_surface, self.rects[default_names[self.last_action]].center)
+
+
+        text_surface = self.font.render(f'{type(self.risk)}', False, (0, 0, 0))
+        canvas.blit(text_surface, TextRect)
+
+        # if type(self.risk) == RecruitmentPhase:
+        #     pass
+        # elif type(self.risk) == FirstFromAttackPhase:
+        #     pass
+        # elif type(self.risk) == FirstToAttackPhase:
+        #     pass
+        # elif type(self.risk) == ContinueAttackPhase:
+        #     pass
+        # elif type(self.risk) == ReinforcePhase:
+        #     pass
+        # elif type(self.risk) == SubsequentAttackPhase:
+        #     pass
+        # elif type(self.risk) == FortifyPhase1:
+        #     pass
+        # elif type(self.risk) == FortifyPhase2:
+        #     pass
+        # elif type(self.risk) == FortifyPhase3:
+        #     pass
+
         self.window.blit(canvas, canvas.get_rect())
         pygame.display.update()
         self.clock.tick(self.fps)
@@ -125,6 +156,7 @@ class RiskEnv(gym.Env):
         self.risk = state
         obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
         # obs = self.risk.territories
+        self.last_action = int(action)
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
