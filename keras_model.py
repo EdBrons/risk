@@ -20,7 +20,7 @@ from rl.callbacks import (
 )
 
 # Initialize environment and extract number of actions 
-env = RiskEnv(random_players=True) 
+env = RiskEnv(n_players=2, random_players=True) 
 nb_actions = env.action_space.n
 
 # Build a model for every element in a our observation space 
@@ -41,7 +41,7 @@ for _ in range(2):
 	hidden = Dense(16, activation='relu')(hidden)
 output = Dense(nb_actions, activation='linear')(hidden)
 # model_final = Model(inputs=[model_phase_input, model_territories_input], outputs=output)
-model_final = Model(inputs=[model_territories_input, model_phase_input], outputs=output)
+model_final = Model(inputs={"Territories": model_territories_input, "Phase": model_phase_input}, outputs=output)
 model_final.summary()
 
 # Configure and compile our agent
@@ -50,7 +50,7 @@ policy = BoltzmannQPolicy()
 dqn = DQNAgent(model=model_final, nb_actions=nb_actions, memory=memory, nb_steps_warmup=2000,
                target_model_update=1e-2, policy=policy)
 dqn.processor = MultiInputProcessor(2)
-dqn.compile(Adam(lr=1e-3), metrics=['mae'])
+dqn.compile(Adam(lr=1e-1), metrics=['mae'])
 
 # Train the agent 
-dqn.fit(env, nb_steps=int(1e20), visualize=True, verbose=2)
+dqn.fit(env, nb_steps=int(1e5), visualize=True, verbose=2)

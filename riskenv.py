@@ -116,9 +116,9 @@ class RiskEnv(gym.Env):
             res, state = self.risk.step(action)
             if res == Move.INVALID:
                 self.invalid_moves += 1
-                print(f"\r>> AI Has made an invalid moves in {type(self.risk).__name__} X ({self.invalid_moves})", end='')
+                # print(f"\r>> AI Has made an invalid moves in {type(self.risk).__name__} X ({self.invalid_moves})", end='')
             else:
-                print()
+                # print()
                 self.invalid_moves = 0
             reward = 100 if self.risk.won else -1 if res == Move.INVALID else -5
             self.risk.won = False
