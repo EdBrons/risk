@@ -40,8 +40,8 @@ class RiskEnv(gym.Env):
         #     "Phase": Discrete(self.n_phases),
         #     "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
         # } )
-        #self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
-        self.observation_space = Tuple((Discrete(self.n_phases), MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))))
+        self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+        #self.observation_space = Tuple((Discrete(self.n_phases), MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))))
 
         self.render_mode = "human"
         self.window = None
@@ -89,14 +89,14 @@ class RiskEnv(gym.Env):
         self.clock.tick(self.fps)
 
     def get_observation(self):
-        current_phase_index = Phases.index(type(self.risk).__name__)
+        #current_phase_index = Phases.index(type(self.risk).__name__)
         # obs = {
         #     "Phase": np.array([current_phase_index]),
         #     "Territories": self.risk.territories
         # }
         # return obs 
-        #return self.risk.territories 
-        return (current_phase_index, self.risk.territories)
+        return self.risk.territories 
+        #return (current_phase_index, self.risk.territories)
         
     
     def get_short_observation(self):
@@ -125,9 +125,9 @@ class RiskEnv(gym.Env):
             reward = 1 if self.risk.won else -1 if res == Move.INVALID else -5
         self.risk = state
         # obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
-        #obs = self.risk.territories
-        current_phase_index = Phases.index(type(self.risk).__name__)
-        obs = (current_phase_index, self.risk.territories)
+        obs = self.risk.territories
+        # current_phase_index = Phases.index(type(self.risk).__name__)
+        # obs = (current_phase_index, self.risk.territories)
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
