@@ -1,5 +1,5 @@
 import gymnasium as gym
-from gymnasium.spaces import Dict, Discrete, MultiDiscrete, Graph 
+from gymnasium.spaces import Dict, Discrete, MultiDiscrete, Graph, Box
 from riskstate import *
 from maps import default_map, default_names
 from visualize import ImageLocations, IMG_DIR, TextBoxLocation, TextRect
@@ -37,9 +37,12 @@ class RiskEnv(gym.Env):
 
         self.action_space = Discrete( n_territories + 1 )
 
+
         self.observation_space = Dict( {
             "Phase": Discrete(self.n_phases),
-            "Territories": MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
+            "Owners":  MultiDiscrete(np.full((n_territories,), 2)),
+            "Armies":  MultiDiscrete(np.full((n_territories,), self.MAX_ARMIES)),
+            "ValidMoves":  MultiDiscrete(np.full((n_territories + 1,), 2)),
         } )
         # self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
 
@@ -86,14 +89,14 @@ class RiskEnv(gym.Env):
             canvas.blit(text_surface, self.rects[t_name].center)
 
         # DRAW LAST MOVE
-        if self.last_action != None and self.last_action != self.risk.DO_NOTHING:
-            text_surface = self.font.render(f'{self.risk.territories[self.last_action, ARMIES]}', False, (0, 0, 0))
-            pygame.draw.circle(canvas, (0, 0, 255), self.rects[default_names[self.last_action]].center, 15)
-            canvas.blit(text_surface, self.rects[default_names[self.last_action]].center)
+        # if self.last_action != None and self.last_action != self.risk.DO_NOTHING:
+        #     text_surface = self.font.render(f'{self.risk.territories[self.last_action, ARMIES]}', False, (0, 0, 0))
+        #     pygame.draw.circle(canvas, (0, 0, 255), self.rects[default_names[self.last_action]].center, 15)
+        #     canvas.blit(text_surface, self.rects[default_names[self.last_action]].center)
 
 
-        text_surface = self.font.render(f'{type(self.risk)}', False, (0, 0, 0))
-        canvas.blit(text_surface, TextRect)
+        # text_surface = self.font.render(f'{type(self.risk)}', False, (0, 0, 0))
+        # canvas.blit(text_surface, TextRect)
 
         # if type(self.risk) == RecruitmentPhase:
         #     pass
@@ -120,23 +123,21 @@ class RiskEnv(gym.Env):
 
     def get_observation(self):
         current_phase_index = Phases.index(type(self.risk).__name__)
+        # obs = {
+        #     "Phase": np.array([current_phase_index]),
+        #     "Territories": self.risk.territories
+        # }
+        n_territories = self.risk.n_territories()
         obs = {
             "Phase": np.array([current_phase_index]),
-            "Territories": self.risk.territories
+            "Owners": self.risk.territories[:, OWNER],
+            "Armies": self.risk.territories[:, ARMIES],
+            # "ValidMoves": np.array( [ 1.0 if x in self.risk.action_space() or x == n_territories else 0.0 for x in range(n_territories + 1)])
         }
         return obs 
         # return self.risk.territories 
         
     
-    def get_short_observation(self):
-        obs = {} 
-        for player in self.risk.active_players:
-            obs[f"player_{player}"] = 0
-            for country in self.risk.graph:
-                if self.risk.territories[country, OWNER] == player:
-                    obs[f"player_{player}"] += 1
-        return obs, self.risk.turn
-
     def step(self, action):
         info = {} 
         # Train against random players (agent is at index 0)
@@ -154,7 +155,7 @@ class RiskEnv(gym.Env):
             reward = 100 if self.risk.won else -1 if res == Move.INVALID else -5
             self.risk.won = False
         self.risk = state
-        obs = dict(Phase=np.array([Phases.index(type(self.risk).__name__)]), Territories = self.risk.territories)
+        obs = self.get_observation()
         # obs = self.risk.territories
         self.last_action = int(action)
         return (obs, reward, self.risk.finished() , info)
