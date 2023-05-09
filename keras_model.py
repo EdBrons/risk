@@ -96,5 +96,8 @@ dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 print("TRAINING")
 dqn.fit(env, nb_steps=1000000, visualize=True, verbose=2)
 
-print("DONE TRAINING")
-# dqn.test(env, visualize=True, verbose = 2)
+# Save weights 
+dqn.save_weights('dqn_weights.h5f', overwrite=True)
+
+# To load the weights later on do: 
+# dqn.load_weights('dqn_weights.h5f')
