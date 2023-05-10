@@ -12,9 +12,11 @@ from rl.policy import BoltzmannQPolicy
 from rl.memory import SequentialMemory
 from rl.processors import MultiInputProcessor, Processor
 
+from gymnasium.wrappers import record_video
+
 class MyProcessor(Processor):
     def process_observation(self, observation):
-        return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten(), observation["ValidMoves"].flatten()])
+        return np.append(observation["Phase"].flatten(), [observation["Owners"].flatten(), observation["Armies"].flatten(), observation["ValidMoves"].flatten()])
         # return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten()])
 
     def process_state_batch(self, batch):
@@ -22,7 +24,7 @@ class MyProcessor(Processor):
         return processed_batch
 
     def process_reward(self, reward):
-        return np.clip(reward, -1., 1.)
+        return reward
 
 from riskstate import Phases
 
@@ -46,6 +48,7 @@ parser.add_argument('-v', '--verbose', type=int, default=0)
 parser.add_argument('-s', '--save', action='store_true')
 parser.add_argument('-k', '--key', type=str, default='default')
 parser.add_argument('--skipsetup', action='store_true')
+parser.add_argument('--record', action='store_true')
 
 args = parser.parse_args()
 
@@ -60,9 +63,10 @@ def make_model(in_shape, win_len, nb_actions):
     model_final = Model(inputs = inputs, outputs = action)
     return model_final
 
-print(args.skipsetup)
-
 env = RiskEnv(n_players=args.n_players, random_players=True, randomizedSetUp=args.skipsetup) 
+
+if args.record:
+    env = record_video.RecordVideo( env, video_folder="./vids/" )
 
 def make_agent(model, win_len, nb_actions):
     memory = SequentialMemory(limit=50000, window_length=win_len)
@@ -73,7 +77,7 @@ def make_agent(model, win_len, nb_actions):
     return dqn
 
 
-INPUT_SHAPE = ( 1 + env.risk.n_territories() * 3, )
+INPUT_SHAPE = ( len(Phases) + env.risk.n_territories() * 3, )
 WINDOW_LENGTH = 1
 nb_actions = env.action_space.n
 
@@ -88,7 +92,7 @@ elif args.load is not None:
     dqn.load_weights(args.load)
 
 if args.train:
-    dqn.fit(env, nb_steps=int(1e6), visualize=args.visualize, verbose=args.verbose)
+    dqn.fit(env, nb_steps=int(1e6), nb_max_episode_steps=int(1e2), visualize=args.visualize, verbose=args.verbose)
 elif args.test:
     dqn.test(env, nb_episodes=1, visualize=args.visualize, verbose=args.verbose)
 

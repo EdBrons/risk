@@ -131,7 +131,7 @@ class RiskEnv(gym.Env):
         # }
         n_territories = self.risk.n_territories()
         obs = {
-            "Phase": np.array([current_phase_index]),
+            "Phase": np.array([ 1.0 if i == current_phase_index else 0.0 for i in range(len(Phases)) ]),
             "Owners": self.risk.territories[:, OWNER],
             "Armies": self.risk.territories[:, ARMIES],
             # "ValidMoves": np.full((n_territories,), 0.0, dtype=np.float32)
@@ -161,14 +161,14 @@ class RiskEnv(gym.Env):
         obs = self.get_observation()
         # obs = self.risk.territories
         self.last_action = int(action)
-        return (obs, reward, self.risk.finished() , info)
+        return (obs, reward, self.risk.finished(), info)
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self.risk = new_game(self.n_players, self.randomizedSetUp)
         return self.get_observation()
     
 
-    def render(self, mode):
+    def render(self, mode = None):
         if self.render_mode == "human":
             self._render_frame()
 
