@@ -12,31 +12,6 @@ from rl.policy import BoltzmannQPolicy
 from rl.memory import SequentialMemory
 from rl.processors import MultiInputProcessor, Processor
 
-from riskstate import Phases
-
-env = RiskEnv(n_players=2, random_players=True) 
-nb_actions = env.action_space.n
-print(nb_actions)
-nb_phases = len(Phases)
-nb_territories = env.risk.territories.shape[0]
-
-INPUT_SHAPE = ( 1 + nb_territories * 3, )
-# INPUT_SHAPE = ( 1 + nb_territories * 2, )
-WINDOW_LENGTH = 1
-
-print(INPUT_SHAPE)
-
-# Initialize environment and extract number of actions 
-
-input_shape = (WINDOW_LENGTH,) + INPUT_SHAPE
-
-inputs = Input(shape=input_shape)
-layer1 = Flatten()(inputs)
-layer2 = Dense(512, activation="relu")(layer1)
-action = Dense(nb_actions, activation="linear")(layer2)
-
-model_final = Model(inputs = inputs, outputs = action)
-
 class MyProcessor(Processor):
     def process_observation(self, observation):
         return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten(), observation["ValidMoves"].flatten()])
@@ -49,11 +24,71 @@ class MyProcessor(Processor):
     def process_reward(self, reward):
         return np.clip(reward, -1., 1.)
 
-memory = SequentialMemory(limit=50000, window_length=WINDOW_LENGTH)
-policy = BoltzmannQPolicy()
-dqn = DQNAgent(model=model_final, nb_actions=nb_actions, memory=memory, nb_steps_warmup=2000,
-               target_model_update=1e-2, policy=policy)
-dqn.processor = MyProcessor()
+from riskstate import Phases
+
+import datetime
+
+import os
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog='ModelRunner',
+    description='It runs the model and loads it.',
+    epilog='Made by Eduardo and Ian')
+
+parser.add_argument('-l', '--load', type=str, default=None)
+parser.add_argument('-ll', '--loadlatest', action='store_true')
+parser.add_argument('-r', '--train', action='store_true')
+parser.add_argument('-t', '--test', action='store_true')
+parser.add_argument('--n_players', type=int, default=2)
+parser.add_argument('--visualize', action='store_true')
+parser.add_argument('-v', '--verbose', type=int, default=0)
+parser.add_argument('-s', '--save', action='store_true')
+parser.add_argument('-k', '--key', type=str, default='default')
+
+args = parser.parse_args()
+
+env = RiskEnv(n_players=args.n_players, random_players=True) 
+
+def make_model(in_shape, win_len, nb_actions):
+    input_shape = (win_len,) + in_shape
+    inputs = Input(shape=input_shape)
+    layer1 = Flatten()(inputs)
+    layer2 = Dense(512, activation="relu")(layer1)
+    layer3 = Dense(512, activation="relu")(layer2)
+    layer4 = Dense(512, activation="relu")(layer3)
+    action = Dense(nb_actions, activation="linear")(layer4)
+    model_final = Model(inputs = inputs, outputs = action)
+    return model_final
+
+def make_agent(model, win_len, nb_actions):
+    memory = SequentialMemory(limit=50000, window_length=win_len)
+    policy = BoltzmannQPolicy()
+    dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=2000,
+                target_model_update=1e-2, policy=policy)
+    dqn.processor = MyProcessor()
+    return dqn
+
+
+INPUT_SHAPE = ( 1 + env.risk.n_territories() * 3, )
+WINDOW_LENGTH = 1
+nb_actions = env.action_space.n
+
+model = make_model(INPUT_SHAPE, WINDOW_LENGTH, nb_actions)
+dqn = make_agent(model, WINDOW_LENGTH, nb_actions)
 dqn.compile(Adam(lr=1e-1), metrics=['mae'])
 
-dqn.fit(env, nb_steps=int(1e4), visualize=False, verbose=1)
+if args.loadlatest:
+    with open('weights/checkpoint', encoding="utf-8") as f:
+        dqn.load_weights('weights/' + f.read().split('"')[1::2][0])
+elif args.load is not None:
+    dqn.load_weights(args.load)
+
+if args.train:
+    dqn.fit(env, nb_steps=int(1e6), visualize=args.visualize, verbose=args.verbose)
+elif args.test:
+    dqn.test(env, nb_episodes=1, visualize=args.visualize, verbose=args.verbose)
+
+if args.save:
+    # dqn.save_weights(f"weights/dqn_weights_{datetime.datetime.now()}.h5f", overwrite=True)
+    dqn.save_weights(f"weights/dqn_weights_{args.key}.h5f", overwrite=True)

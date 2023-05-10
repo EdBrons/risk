@@ -1,3 +1,4 @@
 environment/test.py
 environment/__pycache__
+weights/*
 *.pyc
