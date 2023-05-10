@@ -10,4 +10,5 @@ Env.risk
 
 Env.step(0)
 # print(Env.risk.action_space())
-print(Env.get_observation())
+for k, v in Env.get_observation().items():
+    print(k, v.shape)

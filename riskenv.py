@@ -42,7 +42,7 @@ class RiskEnv(gym.Env):
             "Phase": Discrete(self.n_phases),
             "Owners":  MultiDiscrete(np.full((n_territories,), 2)),
             "Armies":  MultiDiscrete(np.full((n_territories,), self.MAX_ARMIES)),
-            "ValidMoves":  MultiDiscrete(np.full((n_territories + 1,), 2)),
+            "ValidMoves":  MultiDiscrete(np.full((n_territories,), 2)),
         } )
         # self.observation_space = MultiDiscrete(np.array([np.array([self.MAX_ARMIES, n_players])]*n_territories))
 
@@ -132,7 +132,8 @@ class RiskEnv(gym.Env):
             "Phase": np.array([current_phase_index]),
             "Owners": self.risk.territories[:, OWNER],
             "Armies": self.risk.territories[:, ARMIES],
-            # "ValidMoves": np.array( [ 1.0 if x in self.risk.action_space() or x == n_territories else 0.0 for x in range(n_territories + 1)])
+            # "ValidMoves": np.full((n_territories,), 0.0, dtype=np.float32)
+            "ValidMoves": np.array( [ 1.0 if self.risk.is_valid(x) else 0.0 for x in range(n_territories) ])
         }
         return obs 
         # return self.risk.territories 

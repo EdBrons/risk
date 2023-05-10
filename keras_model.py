@@ -16,11 +16,12 @@ from riskstate import Phases
 
 env = RiskEnv(n_players=2, random_players=True) 
 nb_actions = env.action_space.n
+print(nb_actions)
 nb_phases = len(Phases)
 nb_territories = env.risk.territories.shape[0]
 
-# INPUT_SHAPE = ( 1 + nb_territories * 2 + nb_actions, )
-INPUT_SHAPE = ( 1 + nb_territories * 2, )
+INPUT_SHAPE = ( 1 + nb_territories * 3, )
+# INPUT_SHAPE = ( 1 + nb_territories * 2, )
 WINDOW_LENGTH = 1
 
 print(INPUT_SHAPE)
@@ -38,8 +39,8 @@ model_final = Model(inputs = inputs, outputs = action)
 
 class MyProcessor(Processor):
     def process_observation(self, observation):
-        # return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten(), observation["ValidMoves"].flatten()])
-        return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten()])
+        return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten(), observation["ValidMoves"].flatten()])
+        # return np.append(observation["Phase"], [observation["Owners"].flatten(), observation["Armies"].flatten()])
 
     def process_state_batch(self, batch):
         processed_batch = batch.astype('float32') / 255.
@@ -55,4 +56,4 @@ dqn = DQNAgent(model=model_final, nb_actions=nb_actions, memory=memory, nb_steps
 dqn.processor = MyProcessor()
 dqn.compile(Adam(lr=1e-1), metrics=['mae'])
 
-dqn.fit(env, nb_steps=int(1e5), visualize=True, verbose=2)
+dqn.fit(env, nb_steps=int(1e4), visualize=False, verbose=1)
