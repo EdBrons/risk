@@ -1,6 +1,7 @@
 import numpy as np
 from enum import Enum, auto
 from maps import default_map, default_graph
+import random 
 
 ARMIES = 0
 OWNER = 1
@@ -15,10 +16,16 @@ class Move(Enum):
     INVALID = 0
     VALID = auto()
 
-def new_game(n_players):
+def new_game(n_players, randomizedSetUp=False):
     n_territories = len(default_graph.keys())
     initial_territories = np.array([np.array([0, -1])] * n_territories)
-    return SetupPhase( 0, 0, [ _ for _ in range(n_players) ], initial_territories, n_territories )
+    risk = SetupPhase( 0, 0, [ _ for _ in range(n_players) ], initial_territories, n_territories )
+    if randomizedSetUp:
+        for _ in range(n_territories):
+            risk = risk.step(random.choice(risk.action_space()))[1]
+    return risk
+
+
 
 #TODO: HANDLE THE 42 action_space: DO NOTHING add some code to each step() method 
 

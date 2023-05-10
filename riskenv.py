@@ -12,10 +12,10 @@ class RiskEnv(gym.Env):
     """Custom Environment that follows gym interface."""
     # metadata = {"render.modes": ["human"], "render_fps": 60}
 
-    def __init__(self, n_players=2, random_players = False):
+    def __init__(self, n_players=2, random_players = False, randomizedSetUp = False):
         super().__init__()
 
-        self.risk = new_game(n_players)
+        self.risk = new_game(n_players, randomizedSetUp=randomizedSetUp)
         self.observation_unit_max = 10
         self.n_players = n_players
 

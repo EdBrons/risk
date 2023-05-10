@@ -3,12 +3,14 @@ from enum import Enum, auto
 from maps import default_map
 from riskenv import RiskEnv
 
-Env = RiskEnv(2)
-Env.risk 
-# print(Env.reset())
-# print(Env.get_observation())
+Env = RiskEnv(2, randomizedSetUp=True)
+for _ in range(100000):    
+    Env.render('mode')
 
-Env.step(0)
-# print(Env.risk.action_space())
-for k, v in Env.get_observation().items():
-    print(k, v.shape)
+# Env.step(0)
+# # print(Env.risk.action_space())
+# for k, v in Env.get_observation().items():
+#     print(k, v.shape)
+
+
+
