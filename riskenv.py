@@ -16,6 +16,7 @@ class RiskEnv(gym.Env):
         super().__init__()
 
         self.risk = new_game(n_players, randomizedSetUp=randomizedSetUp)
+
         self.observation_unit_max = 10
         self.n_players = n_players
 
@@ -29,6 +30,7 @@ class RiskEnv(gym.Env):
         self.colors[-1] = ( 128, 128, 128, 100 )
 
         self.random_players = random_players
+        self.randomizedSetUp = randomizedSetUp
 
         n_territories = self.risk.n_territories()
         self.n_phases = len(Phases)
@@ -162,7 +164,7 @@ class RiskEnv(gym.Env):
         return (obs, reward, self.risk.finished() , info)
 
     def reset(self):
-        self.risk = new_game(self.n_players)
+        self.risk = new_game(self.n_players, self.randomizedSetUp)
         return self.get_observation()
     
 

@@ -45,10 +45,9 @@ parser.add_argument('--visualize', action='store_true')
 parser.add_argument('-v', '--verbose', type=int, default=0)
 parser.add_argument('-s', '--save', action='store_true')
 parser.add_argument('-k', '--key', type=str, default='default')
+parser.add_argument('--skipsetup', action='store_true')
 
 args = parser.parse_args()
-
-env = RiskEnv(n_players=args.n_players, random_players=True) 
 
 def make_model(in_shape, win_len, nb_actions):
     input_shape = (win_len,) + in_shape
@@ -60,6 +59,10 @@ def make_model(in_shape, win_len, nb_actions):
     action = Dense(nb_actions, activation="linear")(layer4)
     model_final = Model(inputs = inputs, outputs = action)
     return model_final
+
+print(args.skipsetup)
+
+env = RiskEnv(n_players=args.n_players, random_players=True, randomizedSetUp=args.skipsetup) 
 
 def make_agent(model, win_len, nb_actions):
     memory = SequentialMemory(limit=50000, window_length=win_len)
